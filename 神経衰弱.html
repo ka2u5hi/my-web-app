@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4x4 神経衰弱ゲーム</title>
+  <style>
+    /* ----------------------------------------------------
+       基本スタイル & CSS変数 (カラーやフォントの定義)
+    ---------------------------------------------------- */
+    :root {
+      --bg-color: #f0f4f8;
+      --card-back: #2b3a4a;
+      --card-front: #ffffff;
+      --accent-color: #3b82f6;
+      --success-color: #10b981;
+      --text-color: #1f2937;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* ----------------------------------------------------
+       レイアウト設定 (ゲームコンテナ)
+    ---------------------------------------------------- */
+    .container {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: var(--text-color);
+    }
+
+    /* スコア＆ステータス表示エリア */
+    .status-bar {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #f8fafc;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    /* ----------------------------------------------------
+       4x4 カードグリッド設定
+    ---------------------------------------------------- */
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      aspect-ratio: 1 / 1; /* 正方形を維持 */
+      margin-bottom: 20px;
+    }
+
+    /* ----------------------------------------------------
+       カードの3Dフリップアニメーション
+    ---------------------------------------------------- */
+    .card {
+      background-color: transparent;
+      perspective: 1000px; /* 3D効果の奥行き */
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.5s ease;
+      transform-style: preserve-3d;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    /* カードを表に返すアニメーション */
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* カードの表面・裏面の共通スタイル */
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden; /* 裏側を非表示にする */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      font-size: 2rem;
+      user-select: none;
+    }
+
+    /* 裏面（伏せられている状態） */
+    .card-back {
+      background-color: var(--card-back);
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    .card-back::after {
+      content: "?";
+      font-size: 1.2rem;
+      opacity: 0.5;
+    }
+
+    /* 表面（開いた状態） */
+    .card-front {
+      background-color: var(--card-front);
+      transform: rotateY(180deg);
+      border: 2px solid #e2e8f0;
+    }
+
+    /* ペアが揃ったカードのスタイル */
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched .card-front {
+      border-color: var(--success-color);
+      background-color: #ecfdf5;
+      animation: pulse 0.4s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: rotateY(180deg) scale(1); }
+      50% { transform: rotateY(180deg) scale(1.08); }
+      100% { transform: rotateY(180deg) scale(1); }
+    }
+
+    /* ----------------------------------------------------
+       操作ボタン & メッセージ
+    ---------------------------------------------------- */
+    .btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background-color: #2563eb;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ゲームクリア時のダイアログ */
+    .message-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .message-modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+    }
+
+    .modal-content h2 {
+      color: var(--success-color);
+      margin-bottom: 8px;
+    }
+
+    .modal-content p {
+      margin-bottom: 16px;
+      color: #4b5563;
+    }
+
+    /* 25ターン以内クリア時の「R」表示スタイル */
+    .rank-r {
+      display: none;
+      font-size: 4rem;
+      font-weight: 900;
+      color: #f59e0b; /* 華やかなゴールド風カラー */
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+      margin: 10px 0;
+    }
+
+    .rank-r.active {
+      display: block;
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ゲームのメインコンテナ -->
+  <div class="container">
+    <h1>神経衰弱 (4 × 4)</h1>
+
+    <!-- ターン数とペア数の表示 -->
+    <div class="status-bar">
+      <div>ターン数: <span id="turns">0</span></div>
+      <div>揃ったペア: <span id="pairs">0</span> / 8</div>
+    </div>
+
+    <!-- 4x4 カード配置エリア -->
+    <div class="game-board" id="board"></div>
+
+    <!-- リセットボタン -->
+    <button class="btn" onclick="initGame()">ゲームをリセット</button>
+  </div>
+
+  <!-- クリア時モーダル -->
+  <div class="message-modal" id="modal">
+    <div class="modal-content">
+      <h2>🎉 ゲームクリア！</h2>
+      <!-- 25ターン以内達成時に表示される「R」の文字 -->
+      <div id="rank-r" class="rank-r">R</div>
+      <p id="modal-text">クリアおめでとうございます！</p>
+      <button class="btn" onclick="closeModalAndRestart()">もう一度あそぶ</button>
+    </div>
+  </div>
+
+  <script>
+    /* ----------------------------------------------------
+       ゲーム設定 & グローバル変数
+    ---------------------------------------------------- */
+    // 8種類の数字（各2枚ずつ計16枚）
+    const NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    let cards = [];          // カードデータの配列
+    let firstCard = null;    // 1枚目にめくったカード
+    let secondCard = null;   // 2枚目にめくったカード
+    let lockBoard = false;   // アニメーション中の連打防止用フラグ
+    let turns = 0;           // 試行回数（ターン）
+    let matchedPairs = 0;    // 揃ったペア数
+
+    /* ----------------------------------------------------
+       配列をランダムにシャッフルする関数 (Fisher-Yates)
+    ---------------------------------------------------- */
+    function shuffle(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    /* ----------------------------------------------------
+       ゲーム初期化関数
+    ---------------------------------------------------- */
+    function initGame() {
+      const board = document.getElementById('board');
+      board.innerHTML = ''; // 既存のカードをクリア
+
+      // 変数の初期化
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      turns = 0;
+      matchedPairs = 0;
+      updateStatus();
+
+      // 数字を2枚ずつ複製して計16枚の配列を作成し、シャッフル
+      const cardValues = shuffle([...NUMBERS, ...NUMBERS]);
+
+      // DOM要素としてカードを生成
+      cardValues.forEach((num, index) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.index = index;
+        card.dataset.value = num;
+
+        // 3Dアニメーション用構造を作成
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-back"></div>
+            <div class="card-front">${num}</div>
+          </div>
+        `;
+
+        // クリックイベントの設定
+        card.addEventListener('click', flipCard);
+        board.appendChild(card);
+      });
+    }
+
+    /* ----------------------------------------------------
+       ステータス表示の更新
+    ---------------------------------------------------- */
+    function updateStatus() {
+      document.getElementById('turns').textContent = turns;
+      document.getElementById('pairs').textContent = matchedPairs;
+    }
+
+    /* ----------------------------------------------------
+       カードをめくる処理
+    ---------------------------------------------------- */
+    function flipCard() {
+      // ロック中、またはすでにオープン・揃っているカードは無視
+      if (lockBoard) return;
+      if (this === firstCard) return;
+      if (this.classList.contains('flipped') || this.classList.contains('matched')) return;
+
+      // カードに flipped クラスを付与して表に返す
+      this.classList.add('flipped');
+
+      if (!firstCard) {
+        // 1枚目のカードを選択
+        firstCard = this;
+      } else {
+        // 2枚目のカードを選択
+        secondCard = this;
+        turns++;
+        updateStatus();
+
+        // ペア判定へ
+        checkMatch();
+      }
+    }
+
+    /* ----------------------------------------------------
+       ペア判定処理
+    ---------------------------------------------------- */
+    function checkMatch() {
+      const isMatch = firstCard.dataset.value === secondCard.dataset.value;
+
+      if (isMatch) {
+        // 数字が一致した場合
+        handleMatch();
+      } else {
+        // 不一致の場合
+        unflipCards();
+      }
+    }
+
+    /* ----------------------------------------------------
+       一致した場合の処理
+    ---------------------------------------------------- */
+    function handleMatch() {
+      firstCard.classList.add('matched');
+      secondCard.classList.add('matched');
+
+      matchedPairs++;
+      updateStatus();
+
+      resetTurn();
+
+      // 全8ペア揃ったらゲームクリア
+      if (matchedPairs === NUMBERS.length) {
+        setTimeout(showWinModal, 500);
+      }
+    }
+
+    /* ----------------------------------------------------
+       不一致の場合の処理 (時間差で裏に戻す)
+    ---------------------------------------------------- */
+    function unflipCards() {
+      lockBoard = true; // 他のカードを押せないようロック
+
+      setTimeout(() => {
+        firstCard.classList.remove('flipped');
+        secondCard.classList.remove('flipped');
+        resetTurn();
+      }, 1000); // 1秒間カードを見せてから裏返す
+    }
+
+    /* ----------------------------------------------------
+       ターンの状態をクリア
+    ---------------------------------------------------- */
+    function resetTurn() {
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+    }
+
+    /* ----------------------------------------------------
+       クリアメッセージの表示・非表示
+    ---------------------------------------------------- */
+    function showWinModal() {
+      const modal = document.getElementById('modal');
+      const text = document.getElementById('modal-text');
+      const rankR = document.getElementById('rank-r');
+
+      text.textContent = `${turns} ターンで全てのペアを見つけました！`;
+
+      // 25ターン以内の場合のみ「R」を表示
+      if (turns <= 25) {
+        rankR.classList.add('active');
+      } else {
+        rankR.classList.remove('active');
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeModalAndRestart() {
+      document.getElementById('modal').classList.remove('active');
+      document.getElementById('rank-r').classList.remove('active');
+      initGame();
+    }
+
+    // ページロード時にゲームを開始
+    window.onload = initGame;
+  </script>
+</body>
+</html>
