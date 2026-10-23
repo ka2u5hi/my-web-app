@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -34,11 +36,6 @@
     .gradient-banner {
       background: linear-gradient(135deg, #e11d48 0%, #8b5cf6 50%, #2563eb 100%);
     }
-    .floor-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
   </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
@@ -58,23 +55,24 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2 sm:gap-4">
+      <div class="flex items-center gap-2 sm:gap-3">
         <!-- Live Status Badge -->
         <div class="hidden md:flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           <span class="font-bold">LIVE ONLINE</span>
         </div>
 
+        <!-- Camera QR Reader Button -->
+        <button onclick="openQrScannerModal()" class="px-3 py-1.5 text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow transition flex items-center gap-1.5">
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          <span>QRスキャン</span>
+        </button>
+
         <!-- Dark mode toggle -->
         <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
           <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
           <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
         </button>
-
-        <a href="admin.html" target="_blank" class="px-3 py-1.5 text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition flex items-center gap-1.5">
-          <i data-lucide="shield-check" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">管理者画面へ</span>
-        </a>
       </div>
     </div>
   </header>
@@ -104,30 +102,12 @@
           Webゲームアトラクションを<br>スマホでプレイしよう🎮
         </h2>
         <p class="text-white/90 text-sm sm:text-base">
-          2Rが制作した個性豊かなゲームが勢ぞろい！会場マップから遊ぶ場所を探してみよう！
+          2Rがが制作した個性豊かなゲームが勢ぞろい！会場のQRコードを読み取るか、一覧から選んで遊ぼう！
         </p>
-      </div>
-    </div>
-
-    <!-- Quick Stats Strip -->
-    <div class="grid grid-cols-2 gap-4">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4">
-        <div class="p-3 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl">
-          <i data-lucide="gamepad-2" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">公開中のゲーム</div>
-          <div class="text-xl font-black" id="pubUnlockedCount">0 作品</div>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4">
-        <div class="p-3 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl">
-          <i data-lucide="play-circle" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">総プレイ回数</div>
-          <div class="text-xl font-black" id="pubTotalPlays">0 回</div>
+        <div class="pt-2">
+          <button onclick="openQrScannerModal()" class="bg-white text-rose-600 hover:bg-slate-100 font-black text-sm px-5 py-2.5 rounded-2xl shadow-lg transition flex items-center gap-2">
+            <i data-lucide="qr-code" class="w-5 h-5"></i> ブースのQRコードを読み取る
+          </button>
         </div>
       </div>
     </div>
@@ -160,31 +140,52 @@
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">校内の各棟・各フロアの教室配置図です。</p>
           </div>
 
-          <!-- Building Filter Tabs -->
           <div class="flex flex-wrap gap-2">
-            <button onclick="selectBuilding('main')" id="bldgMainBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm transition">本館 / 南実習棟</button>
-            <button onclick="selectBuilding('lab')" id="bldgLabBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">実験実習棟 / 西実習棟</button>
-            <button onclick="selectBuilding('north')" id="bldgNorthBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">北実習棟 / 東実習棟</button>
-            <button onclick="selectBuilding('gym')" id="bldgGymBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">体育館 / 仰星会館</button>
+            <button id="bldgMainBtn" onclick="selectBuilding('main')" class="px-3 py-1.5 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm transition">本館・南実習棟</button>
+            <button id="bldgLabBtn" onclick="selectBuilding('lab')" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">実験実習棟・西</button>
+            <button id="bldgNorthBtn" onclick="selectBuilding('north')" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">北実習棟・東</button>
+            <button id="bldgGymBtn" onclick="selectBuilding('gym')" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">体育館・仰星会館</button>
           </div>
         </div>
 
-        <!-- Building Layout Visual Container -->
-        <div id="mapContainer" class="bg-slate-100 dark:bg-slate-900/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[420px] flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-4 text-xs font-bold text-slate-500 dark:text-slate-400">
-            <span id="buildingTitle" class="text-rose-500 dark:text-rose-400 font-black text-sm">🏛️ 本館・南実習棟 配置図</span>
-            <span>校内配置ガイド</span>
-          </div>
-
-          <!-- Room Layout Visual Canvas Area -->
-          <div id="buildingLayoutContent" class="space-y-4 overflow-x-auto pb-2">
-            <!-- Dynamically populated room map block -->
+        <div class="space-y-4">
+          <h4 id="buildingTitle" class="font-extrabold text-lg text-rose-600 dark:text-rose-400">🏛️ 本館・南実習棟 配置図</h4>
+          <div id="buildingLayoutContent" class="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+            <!-- Dynamically populated map floors -->
           </div>
         </div>
       </div>
     </section>
 
   </main>
+
+  <!-- MODAL: QR SCANNER -->
+  <div id="qrScannerModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-700 text-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
+          <i data-lucide="qr-code" class="w-5 h-5 text-rose-500"></i> QRコードを読み取る
+        </h3>
+        <button onclick="closeQrScannerModal()" class="text-slate-400 hover:text-rose-500 transition">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-center">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          ブースに掲示されているゲームのQRコードをカメラにかざしてください。
+        </p>
+
+        <div id="qrReader" class="overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-black min-h-[250px]"></div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeQrScannerModal()" class="w-full py-2.5 text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition">
+          キャンセル
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: GAME PLAY IFRAME -->
   <div id="gamePlayModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 hidden">
@@ -222,8 +223,8 @@
 
     let gamesData = JSON.parse(localStorage.getItem('festival_games_data')) || DEFAULT_GAMES;
     let currentBuilding = 'main';
+    let html5QrCode = null;
 
-    // Campus map diagram database based on user provided arrangement sheet
     const CAMPUS_MAP_DATA = {
       main: {
         title: '🏛️ 本館・南実習棟 配置図',
@@ -499,10 +500,6 @@
       grid.innerHTML = '';
 
       const activeGames = gamesData.filter(g => g.active);
-      document.getElementById('pubUnlockedCount').textContent = `${activeGames.length} 作品`;
-
-      let totalPlays = gamesData.reduce((acc, curr) => acc + curr.plays, 0);
-      document.getElementById('pubTotalPlays').textContent = `${totalPlays.toLocaleString()} 回`;
 
       if (activeGames.length === 0) {
         grid.innerHTML = `
@@ -572,6 +569,65 @@
     function closeGameModal() {
       document.getElementById('gamePlayModal').classList.add('hidden');
       document.getElementById('gameIframe').src = '';
+    }
+
+    // --- QR CODE SCANNER FUNCTIONS ---
+    function openQrScannerModal() {
+      document.getElementById('qrScannerModal').classList.remove('hidden');
+      safeInitIcons();
+
+      if (typeof Html5Qrcode !== 'undefined') {
+        html5QrCode = new Html5Qrcode("qrReader");
+        const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+        html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onQrCodeScanned,
+          (errorMessage) => {
+            // Scanner frame scan error (normal ignore)
+          }
+        ).catch(err => {
+          console.warn("Unable to start camera:", err);
+          document.getElementById('qrReader').innerHTML = `
+            <div class="p-6 text-xs text-rose-400 font-bold flex flex-col items-center justify-center h-full gap-2">
+              <i data-lucide="camera-off" class="w-8 h-8"></i>
+              カメラの起動に失敗しました。<br>ブラウザのカメラ権限を許可してください。
+            </div>
+          `;
+          safeInitIcons();
+        });
+      }
+    }
+
+    function closeQrScannerModal() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+          document.getElementById('qrScannerModal').classList.add('hidden');
+        }).catch(err => {
+          document.getElementById('qrScannerModal').classList.add('hidden');
+        });
+      } else {
+        document.getElementById('qrScannerModal').classList.add('hidden');
+      }
+    }
+
+    function onQrCodeScanned(decodedText, decodedResult) {
+      closeQrScannerModal();
+
+      const matchedGame = gamesData.find(g => g.url === decodedText || decodedText.includes(g.url));
+
+      if (matchedGame) {
+        playGame(matchedGame.id);
+      } else {
+        document.getElementById('modalGameTitle').textContent = "QRスキャンゲーム";
+        document.getElementById('modalGameAuthor').textContent = "外部読み込み";
+        document.getElementById('gameIframe').src = decodedText;
+        document.getElementById('modalExternalLink').href = decodedText;
+        document.getElementById('gamePlayModal').classList.remove('hidden');
+      }
     }
   </script>
 </body>
