@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仰星祭 2026 Game Hub - 来場者ポータル</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+    }
+    .gradient-banner {
+      background: linear-gradient(135deg, #e11d48 0%, #8b5cf6 50%, #2563eb 100%);
+    }
+    .floor-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+        🎉 仰星祭へようこそ！Webゲームアトラクションを体験しよう！
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+    <!-- Hero Banner -->
+    <div class="relative rounded-3xl overflow-hidden shadow-xl gradient-banner text-white p-6 sm:p-10">
+      <div class="relative z-10 max-w-2xl space-y-4">
+        <span class="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30 inline-block">
+          全ゲーム無料で遊べる！
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-black leading-tight tracking-tight">
+          Webゲームアトラクションを<br>スマホでプレイしよう🎮
+        </h2>
+        <p class="text-white/90 text-sm sm:text-base">
+          各クラスや部活が制作した個性豊かなゲームが勢ぞろい！会場マップから遊ぶ場所を探してみよう！
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Stats Strip -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4">
+        <div class="p-3 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl">
+          <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">公開中のゲーム</div>
+          <div class="text-xl font-black" id="pubUnlockedCount">0 作品</div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex items-center gap-4">
+        <div class="p-3 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl">
+          <i data-lucide="play-circle" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">総プレイ回数</div>
+          <div class="text-xl font-black" id="pubTotalPlays">0 回</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation View Switch Tabs -->
+    <div class="border-b border-slate-200 dark:border-slate-800 flex items-center gap-4">
+      <button onclick="switchView('games')" id="tabGamesBtn" class="pb-3 border-b-2 border-rose-500 text-rose-600 dark:text-rose-400 flex items-center gap-2 font-bold text-sm sm:text-base">
+        <i data-lucide="gamepad-2" class="w-5 h-5"></i> ゲーム一覧
+      </button>
+      <button onclick="switchView('map')" id="tabMapBtn" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 font-bold text-sm sm:text-base">
+        <i data-lucide="map" class="w-5 h-5"></i> 校内ブースマップ
+      </button>
+    </div>
+
+    <!-- SECTION 1: GAMES GRID -->
+    <section id="gamesSection" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6" id="publicGamesGrid">
+        <!-- Dynamically populated game cards -->
+      </div>
+    </section>
+
+    <!-- SECTION 2: MAP VIEW -->
+    <section id="mapSection" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-4">
+          <div>
+            <h3 class="font-black text-xl flex items-center gap-2">
+              <i data-lucide="map-pin" class="w-6 h-6 text-rose-500"></i> 校内教室配置図（全体マップ）
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">校内の各棟・各フロアの教室配置図です。</p>
+          </div>
+
+          <!-- Building Filter Tabs -->
+          <div class="flex flex-wrap gap-2">
+            <button onclick="selectBuilding('main')" id="bldgMainBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm transition">本館 / 南実習棟</button>
+            <button onclick="selectBuilding('lab')" id="bldgLabBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">実験実習棟 / 西実習棟</button>
+            <button onclick="selectBuilding('north')" id="bldgNorthBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">北実習棟 / 東実習棟</button>
+            <button onclick="selectBuilding('gym')" id="bldgGymBtn" class="px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition">体育館 / 仰星会館</button>
+          </div>
+        </div>
+
+        <!-- Building Layout Visual Container -->
+        <div id="mapContainer" class="bg-slate-100 dark:bg-slate-900/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 min-h-[420px] flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4 text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span id="buildingTitle" class="text-rose-500 dark:text-rose-400 font-black text-sm">🏛️ 本館・南実習棟 配置図</span>
+            <span>校内配置ガイド</span>
+          </div>
+
+          <!-- Room Layout Visual Canvas Area -->
+          <div id="buildingLayoutContent" class="space-y-4 overflow-x-auto pb-2">
+            <!-- Dynamically populated room map block -->
+          </div>
+        </div>
+    let currentBuilding = 'main';
+
+    // Campus map diagram database based on user provided arrangement sheet
+    const CAMPUS_MAP_DATA = {
+      main: {
+        title: '🏛️ 本館・南実習棟 配置図',
+        floors: [
+          {
+            floor: '4F',
+            rooms: [
+              { name: '視聴覚室', type: 'special' },
+              { name: '研修室', type: 'special' },
+              { name: '3R 教室', type: 'classroom' },
+              { name: '3B 教室', type: 'classroom' },
+              { name: '3E 教室', type: 'classroom' },
+              { name: '3M 教室', type: 'classroom' },
+              { name: '生徒会室', type: 'office' }
+            ]
+          },
+          {
+            floor: '3F',
+            rooms: [
+              { name: '電子基礎計測実習室（南実習棟）', type: 'lab' },
+              { name: '物理室', type: 'special' },
+              { name: '2R 教室', type: 'classroom' },
+              { name: '2B 教室', type: 'classroom' },
+              { name: '2E 教室', type: 'classroom' },
+              { name: '2M 教室', type: 'classroom' },
+              { name: '相談室', type: 'office' }
+            ]
+          },
+          {
+            floor: '2F',
+            rooms: [
+              { name: 'コンピュータ実習室（南実習棟）', type: 'lab' },
+              { name: '図書室', type: 'special' },
+              { name: '職員室 / 校長室', type: 'office' },
+              { name: '事務室', type: 'office' },
+              { name: '進路支援室', type: 'office' }
+            ]
+          },
+          {
+            floor: '1F',
+            rooms: [
+              { name: '自動制御実習室（南実習棟）', type: 'lab' },
+              { name: '化学室', type: 'special' },
+              { name: '1B 教室', type: 'classroom' },
+              { name: 'K2 教室', type: 'classroom' },
+              { name: 'K1 教室', type: 'classroom' },
+              { name: '1E 教室', type: 'classroom' },
+              { name: '保健室 / 玄関', type: 'office' }
+            ]
+          }
+        ]
+      },
+      lab: {
+        title: '⚙️ 実験実習棟・西実習棟 配置図',
+        floors: [
+          {
+            floor: '4F',
+            rooms: [
+              { name: '電力応用実習室（西）', type: 'lab' },
+              { name: '計画設計実習室（西）', type: 'lab' }
+            ]
+          },
+          {
+            floor: '3F',
+            rooms: [
+              { name: '電気工作工事実習室（西）', type: 'lab' },
+              { name: '電子計算機実習室（西）', type: 'lab' },
+              { name: '建築設計製図実習室', type: 'lab' },
+              { name: '電気製図実習室', type: 'lab' },
+              { name: '電子機器実習室', type: 'lab' },
+              { name: '電気計測実習室', type: 'lab' }
+            ]
+          },
+          {
+            floor: '2F',
+            rooms: [
+              { name: '製図実習室（西）', type: 'lab' },
+              { name: '試験計測実習室（西）', type: 'lab' },
+              { name: '第二職員室', type: 'office' },
+              { name: '工作工事実習室', type: 'lab' },
+              { name: '電気機器実習室', type: 'lab' }
+            ]
+          },
+          {
+            floor: '1F',
+            rooms: [
+              { name: '測量実習室（西）', type: 'lab' },
+              { name: '材料実習室', type: 'lab' },
+              { name: '施工実習室', type: 'lab' },
+              { name: '自動制御実習室', type: 'lab' },
+              { name: 'デザイン実習室', type: 'lab' },
+              { name: '材料試験室', type: 'lab' }
+            ]
+          }
+        ]
+      },
+      north: {
+        title: '🏭 北実習棟・東実習棟 配置図',
+        floors: [
+          {
+            floor: '4F',
+            rooms: [
+              { name: '電子機械実習室（東実習棟）', type: 'lab' }
+            ]
+          },
+          {
+            floor: '3F',
+            rooms: [
+              { name: 'セミナー室', type: 'special' },
+              { name: 'マルチメディア実習室', type: 'lab' },
+              { name: '三次元測定室', type: 'lab' },
+              { name: 'メカトロ実習室', type: 'lab' },
+              { name: '原動機実習室', type: 'lab' },
+              { name: '被服実習室（東）', type: 'lab' }
+            ]
+          },
+          {
+            floor: '2F',
+            rooms: [
+              { name: '溶接実習室', type: 'lab' },
+              { name: 'フライス盤実習室', type: 'lab' },
+              { name: '食物実習室（東）', type: 'lab' }
+            ]
+          },
+          {
+            floor: '1F',
+            rooms: [
+              { name: '建方実習室', type: 'lab' },
+              { name: '木造実習室', type: 'lab' },
+              { name: '鋳造実習室', type: 'lab' },
+              { name: '旋盤実習室', type: 'lab' },
+              { name: 'MC実習室（東）', type: 'lab' }
+            ]
+          }
+        ]
+      },
+      gym: {
+        title: '🏀 体育館・アリーナ・仰星会館 配置図',
+        floors: [
+          {
+            floor: '2F',
+            rooms: [
+              { name: 'アリーナ（体育館）', type: 'special' },
+              { name: '第一研修室（仰星会館）', type: 'special' }
+            ]
+          },
+          {
+            floor: '1F',
+            rooms: [
+              { name: 'トレーニングルーム / 卓球場', type: 'special' },
+              { name: '剣道場 / 柔道場', type: 'special' },
+              { name: '和室 / 風呂（仰星会館）', type: 'special' }
+            ]
+          }
+        ]
+      }
+    };
+
+    // BroadcastChannel for cross-tab realtime sync
+    const channel = new BroadcastChannel('festival_game_hub_sync');
+    channel.onmessage = (event) => {
+      if (event.data.type === 'SYNC_ALL') {
+        gamesData = event.data.gamesData;
+        if (event.data.announcement) {
+          document.getElementById('currentAnnouncementText').textContent = event.data.announcement;
+        }
+        renderPublicGames();
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      safeInitIcons();
+
+      const savedAnnounce = localStorage.getItem('festival_announcement');
+      if (savedAnnounce) {
+        document.getElementById('currentAnnouncementText').textContent = savedAnnounce;
+      }
+
+      renderPublicGames();
+      renderMap();
+    });
+
+    function safeInitIcons() {
+      try {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          lucide.createIcons();
+        }
+      } catch (e) {
+        console.warn('Lucide icon warning:', e);
+      }
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function switchView(view) {
+      const gamesSec = document.getElementById('gamesSection');
+      const mapSec = document.getElementById('mapSection');
+      const tabGames = document.getElementById('tabGamesBtn');
+      const tabMap = document.getElementById('tabMapBtn');
+
+      if (view === 'games') {
+        gamesSec.classList.remove('hidden');
+        mapSec.classList.add('hidden');
+        tabGames.className = "pb-3 border-b-2 border-rose-500 text-rose-600 dark:text-rose-400 flex items-center gap-2 font-bold text-sm sm:text-base";
+        tabMap.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 font-bold text-sm sm:text-base";
+      } else {
+        gamesSec.classList.add('hidden');
+        mapSec.classList.remove('hidden');
+        tabMap.className = "pb-3 border-b-2 border-rose-500 text-rose-600 dark:text-rose-400 flex items-center gap-2 font-bold text-sm sm:text-base";
+        tabGames.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2 font-bold text-sm sm:text-base";
+        renderMap();
+      }
+    }
+
+    function selectBuilding(bldgKey) {
+      currentBuilding = bldgKey;
+      ['main', 'lab', 'north', 'gym'].forEach(k => {
+        const btn = document.getElementById(`bldg${k[0].toUpperCase() + k.slice(1)}Btn`);
+        if (btn) {
+          if (k === bldgKey) {
+            btn.className = "px-3 py-1.5 rounded-xl text-xs font-black bg-rose-600 text-white shadow-sm transition";
+          } else {
+            btn.className = "px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition";
+          }
+        }
+      });
+      renderMap();
+    }
+
+    function renderMap() {
+      const bldgData = CAMPUS_MAP_DATA[currentBuilding] || CAMPUS_MAP_DATA.main;
+      document.getElementById('buildingTitle').textContent = bldgData.title;
+
+      const container = document.getElementById('buildingLayoutContent');
+      container.innerHTML = '';
+
+      bldgData.floors.forEach(floorObj => {
+        const floorRow = document.createElement('div');
+        floorRow.className = "bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-3";
+
+        let roomsHTML = floorObj.rooms.map(rm => {
+          let styleClass = "bg-slate-100 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+          if (rm.type === 'classroom') styleClass = "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/50";
+          if (rm.type === 'lab') styleClass = "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900/50";
+          if (rm.type === 'special') styleClass = "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50";
+
+          return `
+            <div class="px-3 py-2 rounded-lg border text-xs font-bold whitespace-nowrap min-w-[90px] text-center ${styleClass}">
+              ${rm.name}
+            </div>
+          `;
+        }).join('');
+
+        floorRow.innerHTML = `
+          <div class="w-12 h-12 bg-rose-500 text-white font-black text-sm rounded-xl flex items-center justify-center flex-shrink-0 shadow">
+            ${floorObj.floor}
+          </div>
+          <div class="flex flex-wrap gap-2 flex-1">
+            ${roomsHTML}
+          </div>
+        `;
+
+        container.appendChild(floorRow);
+      });
+
+      safeInitIcons();
+      safeInitIcons();
+    }
+
+    function playGame(gameId) {
+      const game = gamesData.find(g => g.id === gameId);
+      if (!game) return;
+
+      game.plays += 1;
+
+      localStorage.setItem('festival_games_data', JSON.stringify(gamesData));
+      const currentAnnounce = localStorage.getItem('festival_announcement') || '';
+      channel.postMessage({ type: 'SYNC_ALL', gamesData, announcement: currentAnnounce });
+
+      document.getElementById('modalGameTitle').textContent = game.title;
+      document.getElementById('modalGameAuthor').textContent = `${game.author} (${game.location})`;
+      document.getElementById('gameIframe').src = game.url;
+      document.getElementById('modalExternalLink').href = game.url;
+
+      document.getElementById('gamePlayModal').classList.remove('hidden');
+
+      renderPublicGames();
+    }
+
+    function closeGameModal() {
+      document.getElementById('gamePlayModal').classList.add('hidden');
+      document.getElementById('gameIframe').src = '';
+    }
+  </script>
+</body>
+</html>

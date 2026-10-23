@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仰星祭 2026 Game Hub - 管理者画面</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+      <!-- Quick QR Generator Tool -->
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-sm space-y-3">
+        <h3 class="font-bold text-sm flex items-center gap-2 text-white">
+          <i data-lucide="qr-code" class="w-4 h-4 text-emerald-400"></i> 即席QRコード作成
+        </h3>
+        <input type="url" id="quickQrUrlInput" placeholder="https://example.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none">
+        <button onclick="generateCustomQrCode()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+          <i data-lucide="qr-code" class="w-4 h-4"></i> QRコード生成
+        </button>
+      </div>
+
+      <!-- Realtime Analytics Chart -->
+      <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-bold text-sm flex items-center gap-2 text-white">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-purple-400"></i> プレイ数統計
+          </h3>
+          <span class="text-xs text-slate-400 flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> リアルタイム
+          </span>
+        </div>
+        <div class="h-32">
+  <!-- MODAL: QR CODE DISPLAY & PRINT -->
+  <div id="qrModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-700 text-slate-100 space-y-4 text-center">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="font-bold text-sm text-white flex items-center gap-1.5" id="qrModalTitle">
+          <i data-lucide="qr-code" class="w-4 h-4 text-emerald-400"></i> QRコード表示
+        </h3>
+        <button onclick="closeQrModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl inline-block mx-auto shadow-inner">
+        <div id="qrcodeCanvas"></div>
+      </div>
+
+      <p class="text-xs text-slate-400 break-all px-2" id="qrModalTargetUrl"></p>
+
+      <div class="pt-2 flex items-center justify-center gap-2">
+        <button onclick="closeQrModal()" class="px-4 py-2 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl transition">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+          <td class="p-3.5 text-right space-x-1">
+            <button onclick="showGameQrModal('${game.id}')" class="p-1.5 text-emerald-400 hover:text-emerald-300 transition" title="QRコード作成">
+              <i data-lucide="qr-code" class="w-4 h-4"></i>
+            </button>
+            <button onclick="deleteGame('${game.id}')" class="p-1.5 text-slate-400 hover:text-red-400 transition" title="削除">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      try {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          lucide.createIcons();
+        }
+      } catch (e) {
+        console.warn('Lucide icon render warning:', e);
+      }
+    }
+
+    function generateCustomQrCode() {
+      const url = document.getElementById('quickQrUrlInput').value.trim();
+      if (!url) {
+        alert("URLを入力してください");
+        return;
+      }
+      openQrModal(url, "カスタムURL QRコード");
+    }
+
+    function showGameQrModal(gameId) {
+      const game = gamesData.find(g => g.id === gameId);
+      if (game && game.url) {
+        openQrModal(game.url, `${game.title} のQRコード`);
+      }
+    }
+
+    function openQrModal(url, title) {
+      document.getElementById('qrModalTitle').innerHTML = `<i data-lucide="qr-code" class="w-4 h-4 text-emerald-400"></i> ${title}`;
+      document.getElementById('qrModalTargetUrl').textContent = url;
+
+      const canvasContainer = document.getElementById('qrcodeCanvas');
+      canvasContainer.innerHTML = '';
+
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(canvasContainer, {
+          text: url,
+          width: 180,
+          height: 180,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+
+      document.getElementById('qrModal').classList.remove('hidden');
+      try { if (window.lucide) lucide.createIcons(); } catch(e){}
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.add('hidden');
+
+    }
+
+    function toggleGameActive(gameId) {
+      const game = gamesData.find(g => g.id === gameId);
+      if (game) {
+        game.active = !game.active;
+        renderAdminTable();
+        saveDataAndSync();
+      }
+    }
+
+    function deleteGame(gameId) {
+      if (confirm("このゲーム登録を削除しますか？")) {
+        gamesData = gamesData.filter(g => g.id !== gameId);
+        renderAdminTable();
+        updateChartData();
+        saveDataAndSync();
+      }
+    }
+
+    function updateAnnouncement() {
+      const text = document.getElementById('announcementInput').value.trim();
+      if (text) {
+        localStorage.setItem('festival_announcement', text);
+        saveDataAndSync();
+        alert("一斉アナウンスを保存し、配信しました！");
+      }
+    }
+
+    function openAddGameModal() {
+      document.getElementById('addGameModal').classList.remove('hidden');
+    }
+
+    function closeAddGameModal() {
+      document.getElementById('addGameModal').classList.add('hidden');
+    }
+
+    function handleAddGameSubmit(e) {
+      e.preventDefault();
+      const newGame = {
+        id: 'game_' + Date.now(),
+        title: document.getElementById('newGameTitle').value,
+        author: document.getElementById('newGameAuthor').value,
+        location: document.getElementById('newGameLocation').value,
+        url: document.getElementById('newGameUrl').value,
+        description: document.getElementById('newGameDesc').value || '体験型Webゲームアトラクション！',
+        active: true,
+        plays: 0,
+        icon: 'gamepad-2'
+      };
+
+      gamesData.push(newGame);
+      renderAdminTable();
+      updateChartData();
+      saveDataAndSync();
+      closeAddGameModal();
+      document.getElementById('addGameForm').reset();
+    }
+
+    function initAnalyticsChart() {
+      const ctx = document.getElementById('adminAnalyticsChart');
+      if (!ctx || typeof Chart === 'undefined') return;
+
+      const labels = gamesData.map(g => g.title);
+      const data = gamesData.map(g => g.plays);
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'プレイ回数',
+            data: data,
+            backgroundColor: 'rgba(244, 63, 94, 0.6)',
+            borderColor: 'rgba(244, 63, 94, 1)',
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#94a3b8', font: { size: 11 } },
+              grid: { color: 'rgba(51, 65, 85, 0.3)' }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#94a3b8', precision: 0, font: { size: 11 } },
+              grid: { color: 'rgba(51, 65, 85, 0.3)' }
+            }
+          }
+        }
+      });
+    }
+
+    function updateChartData() {
+      if (!chartInstance) {
+        initAnalyticsChart();
+        return;
+      }
+      chartInstance.data.labels = gamesData.map(g => g.title);
+      chartInstance.data.datasets[0].data = gamesData.map(g => g.plays);
+      chartInstance.update();
+    }
+  </script>
+</body>
+</html>
