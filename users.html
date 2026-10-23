@@ -38,6 +38,54 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-200">
+
+  <!-- Header Section -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-rose-500 to-amber-500 text-white p-2 rounded-xl shadow-md">
+          <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-black text-lg sm:text-xl tracking-tight bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent">
+            仰星祭 2026 Game Hub
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">文化祭 Webゲーム体験ポータル</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-4">
+        <!-- Live Status Badge -->
+        <div class="hidden md:flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span class="font-bold">LIVE ONLINE</span>
+        </div>
+
+        <!-- Dark mode toggle -->
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+          <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+        </button>
+
+        <a href="admin.html" target="_blank" class="px-3 py-1.5 text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition flex items-center gap-1.5">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">管理者画面へ</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Announcement Ticker Banner -->
+  <div id="announcementBanner" class="bg-amber-500 text-slate-950 px-4 py-2 font-medium text-xs sm:text-sm flex items-center justify-between shadow-sm transition-all duration-300">
+    <div class="max-w-7xl mx-auto w-full flex items-center gap-3 overflow-hidden">
+      <span class="bg-slate-950 text-amber-400 text-xs font-black px-2 py-0.5 rounded flex-shrink-0 flex items-center gap-1">
+        <i data-lucide="megaphone" class="w-3.5 h-3.5"></i> お知らせ
+      </span>
+      <div class="truncate font-semibold" id="currentAnnouncementText">
         🎉 仰星祭へようこそ！Webゲームアトラクションを体験しよう！
       </div>
     </div>
@@ -133,6 +181,46 @@
             <!-- Dynamically populated room map block -->
           </div>
         </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: GAME PLAY IFRAME -->
+  <div id="gamePlayModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-4xl h-[90vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl border border-slate-700">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+        <div>
+          <h3 class="font-black text-lg" id="modalGameTitle">ゲームタイトル</h3>
+          <p class="text-xs text-slate-400" id="modalGameAuthor">ブース情報</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="modalExternalLink" href="#" target="_blank" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition" title="別タブで開く">
+            <i data-lucide="external-link" class="w-5 h-5"></i>
+          </a>
+          <button onclick="closeGameModal()" class="p-2 text-slate-400 hover:text-rose-500 transition">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 bg-black relative">
+        <iframe id="gameIframe" src="" class="w-full h-full border-0"></iframe>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end bg-slate-50 dark:bg-slate-900">
+        <button onclick="closeGameModal()" class="px-5 py-2.5 text-xs font-bold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition">
+          ゲームを終了する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    const DEFAULT_GAMES = [];
+
+    let gamesData = JSON.parse(localStorage.getItem('festival_games_data')) || DEFAULT_GAMES;
     let currentBuilding = 'main';
 
     // Campus map diagram database based on user provided arrangement sheet
@@ -404,6 +492,60 @@
       });
 
       safeInitIcons();
+    }
+
+    function renderPublicGames() {
+      const grid = document.getElementById('publicGamesGrid');
+      grid.innerHTML = '';
+
+      const activeGames = gamesData.filter(g => g.active);
+      document.getElementById('pubUnlockedCount').textContent = `${activeGames.length} 作品`;
+
+      let totalPlays = gamesData.reduce((acc, curr) => acc + curr.plays, 0);
+      document.getElementById('pubTotalPlays').textContent = `${totalPlays.toLocaleString()} 回`;
+
+      if (activeGames.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700/60 text-center text-slate-400">
+            現在公開中のゲームはありません。管理者ポータルからゲームを追加してください。
+          </div>
+        `;
+        return;
+      }
+
+      activeGames.forEach(game => {
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group";
+        card.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${game.location}
+              </span>
+            </div>
+
+            <div>
+              <h4 class="font-black text-xl group-hover:text-rose-500 transition-colors flex items-center gap-2">
+                ${game.title}
+              </h4>
+              <p class="text-xs text-slate-400 font-bold mt-0.5">${game.author}</p>
+            </div>
+
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              ${game.description}
+            </p>
+          </div>
+
+          <div class="pt-5 border-t border-slate-100 dark:border-slate-700/50 mt-4 flex items-center justify-between">
+            <span class="text-xs font-bold text-rose-500">🎮 ${game.plays}回 プレイ済</span>
+            <button onclick="playGame('${game.id}')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-md flex items-center gap-1.5">
+              <i data-lucide="play" class="w-4 h-4 fill-current"></i> プレイする
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
       safeInitIcons();
     }
 
