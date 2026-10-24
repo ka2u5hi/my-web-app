@@ -463,7 +463,7 @@
         // 旅の扉（ミニゲーム案内）
         function openGamePortal(spot) {
             document.getElementById('portal-spot-name').textContent = spot.name;
-            document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、もじ【 ${spot.char} 】を てにいれよう！`;
+            document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、もじ【 キーワード 】を てにいれよう！`;
 
             document.getElementById('launch-game-btn').onclick = () => {
                 playSe('click');
