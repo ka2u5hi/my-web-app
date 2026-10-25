@@ -284,10 +284,9 @@
             { id: 1, name: "キーワード 1", char: "文", code: "https://ka2u5hi.github.io/my-web-app/8pazuru.html", url: "https://ka2u5hi.github.io/my-web-app/8pazuru.html" },
             { id: 2, name: "キーワード 2", char: "化", code: "https://ka2u5hi.github.io/my-web-app/miniosero.html", url: "https://ka2u5hi.github.io/my-web-app/miniosero.html" },
             { id: 3, name: "キーワード 3", char: "祭", code: "https://ka2u5hi.github.io/my-web-app/10timer.html", url: "https://ka2u5hi.github.io/my-web-app/10timer.html" },
-            { id: 4, name: "キーワード 4", char: "ク", code: "https://ka2u5hi.github.io/my-web-app/神経衰弱.html", url: "https://ka2u5hi.github.io/my-web-app/神経衰弱.html" },
-            { id: 5, name: "キーワード 5", char: "エ", code: "QR_SPOT_5", url: "https://ka2u5hi.github.io/my-web-app/.html" },
-            { id: 6, name: "キーワード 6", char: "ス", code: "QR_SPOT_6", url: "https://example.com/game6" },
-            { id: 7, name: "キーワード 7", char: "ト", code: "QR_SPOT_7", url: "https://example.com/game7" }
+            { id: 4, name: "キーワード 4", char: "ク", code: "SPOT_4", url: "https://example.com/game4" },
+            { id: 5, name: "キーワード 5", char: "エ", code: "SPOT_5", url: "https://example.com/game5" },
+            { id: 6, name: "キーワード 6", char: "スト", code: "SPOT_6", url: "https://example.com/game6" }
         ];
 
         let foundSpotIds = [];
@@ -463,23 +462,12 @@
         // 旅の扉（ミニゲーム案内）
         function openGamePortal(spot) {
             document.getElementById('portal-spot-name').textContent = spot.name;
-            document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、もじ【 キーワード 】を てにいれよう！`;
+            document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、もじ【 ${spot.char} 】を てにいれよう！`;
 
             document.getElementById('launch-game-btn').onclick = () => {
                 playSe('click');
-                // ミニゲーム（外部URL）を開く
-                window.open(spot.url, '_blank');
-
-                closePortalModal();
-                showCustomModal(
-                    "fa-scroll",
-                    "しれんを クリアしたか？",
-                    `ミニゲームクリア後、「キーワードを てにいれる」ボタンを押して文字を獲得しよう！`,
-                    [
-                        { text: "まだ", class: "dq-button py-1 px-3 text-white bg-gray-800", action: resumeScanner },
-                        { text: "キーワードを てにいれる！", class: "dq-button py-1.5 px-3 bg-yellow-500 text-black font-bold", action: () => grantKeyword(spot) }
-                    ]
-                );
+                // 同じタブ（同じウィンドウ）でミニゲームへ遷移する
+                window.location.href = spot.url;
             };
 
             document.getElementById('game-portal-modal').classList.remove('hidden');

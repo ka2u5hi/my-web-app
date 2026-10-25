@@ -1,639 +1,619 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>6x6 オセロ (対CPU)</title>
-<style>
-/* --------------------------------------------------
-基本スタイリング & レイアウト
--------------------------------------------------- */
-:root {
---bg-color: #f4f6f9;
---card-bg: #ffffff;
---board-bg: #1e7e34;
---board-border: #145523;
---cell-hover: #28a745;
---text-color: #333333;
---accent-color: #0d6efd;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6x6 オセロ (対CPU)</title>
+  <style>
+    /* --------------------------------------------------
+       基本スタイリング & レイアウト
+       -------------------------------------------------- */
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --board-bg: #1e7e34;
+      --board-border: #145523;
+      --cell-hover: #28a745;
+      --text-color: #333333;
+      --accent-color: #0d6efd;
+    }
 
-* {
-box-sizing: border-box;
-margin: 0;
-padding: 0;
-}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-body {
-font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-background-color: var(--bg-color);
-color: var(--text-color);
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-min-height: 100vh;
-padding: 20px 10px;
-}
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 10px;
+    }
 
-.container {
-background: var(--card-bg);
-border-radius: 16px;
-box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-padding: 24px;
-width: 100%;
-max-width: 440px;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 16px;
-}
+    .container {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
 
-h1 {
-font-size: 1.6rem;
-font-weight: 700;
-color: #222;
-text-align: center;
-}
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #222;
+      text-align: center;
+    }
 
-.subtitle {
-font-size: 0.9rem;
-color: #666;
-margin-top: -10px;
-}
+    .subtitle {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: -10px;
+    }
 
-/* コントロール */
-.controls {
-display: flex;
-gap: 10px;
-width: 100%;
-justify-content: center;
-}
+    /* コントロール */
+    .controls {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+    }
 
-button {
-font-size: 0.95rem;
-padding: 8px 16px;
-border-radius: 8px;
-border: 1px solid #ccc;
-background-color: #fff;
-cursor: pointer;
-transition: all 0.2s ease;
-}
+    button {
+      font-size: 0.95rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
 
-button:focus {
-outline: none;
-border-color: var(--accent-color);
-}
+    button:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
 
-button.btn-reset {
-background-color: var(--accent-color);
-color: #fff;
-border: none;
-font-weight: 600;
-}
+    button.btn-reset {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+    }
 
-button.btn-reset:hover {
-background-color: #0b5ed7;
-transform: translateY(-1px);
-}
+    button.btn-reset:hover {
+      background-color: #0b5ed7;
+      transform: translateY(-1px);
+    }
 
-/* ゲーム情報（手番・スコア） */
-.info-board {
-display: flex;
-justify-content: space-between;
-align-items: center;
-width: 100%;
-background: #f8f9fa;
-padding: 12px 16px;
-border-radius: 12px;
-border: 1px solid #e9ecef;
-}
+    /* ゲーム情報（手番・スコア） */
+    .info-board {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+    }
 
-.score-box {
-display: flex;
-align-items: center;
-gap: 8px;
-font-weight: 600;
-font-size: 1.1rem;
-}
+    .score-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
 
-.indicator-disc {
-width: 20px;
-height: 20px;
-border-radius: 50%;
-display: inline-block;
-box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
-}
+    .indicator-disc {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
 
-.indicator-disc.black { background-color: #222; }
-.indicator-disc.white { background-color: #fff; border: 1px solid #ccc; }
+    .indicator-disc.black { background-color: #222; }
+    .indicator-disc.white { background-color: #fff; border: 1px solid #ccc; }
 
-.status-msg {
-font-size: 1rem;
-font-weight: bold;
-color: #495057;
-}
+    .status-msg {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #495057;
+    }
 
-/* --------------------------------------------------
-オセロ盤面 (6x6 CSS Grid)
--------------------------------------------------- */
-.board-container {
-position: relative;
-width: 100%;
-}
+    /* --------------------------------------------------
+       オセロ盤面 (6x6 CSS Grid)
+       -------------------------------------------------- */
+    .board-container {
+      position: relative;
+      width: 100%;
+    }
 
-.board {
-display: grid;
-grid-template-columns: repeat(6, 1fr);
-grid-template-rows: repeat(6, 1fr);
-gap: 3px;
-background-color: var(--board-border);
-border: 6px solid var(--board-border);
-border-radius: 8px;
-width: 100%;
-aspect-ratio: 1 / 1;
-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
-}
+    .board {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(6, 1fr);
+      gap: 3px;
+      background-color: var(--board-border);
+      border: 6px solid var(--board-border);
+      border-radius: 8px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    }
 
-/* 各マス目 */
-.cell {
-background-color: var(--board-bg);
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-position: relative;
-user-select: none;
-border-radius: 2px;
-transition: background-color 0.15s ease;
-}
+    /* 各マス目 */
+    .cell {
+      background-color: var(--board-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      border-radius: 2px;
+      transition: background-color 0.15s ease;
+    }
 
-.cell:hover {
-background-color: var(--cell-hover);
-}
+    .cell:hover {
+      background-color: var(--cell-hover);
+    }
 
-/* 置ける場所のガイド表示（ドット） */
-.cell.valid-move::after {
-content: '';
-width: 28%;
-height: 28%;
-background-color: rgba(255, 255, 255, 0.45);
-border-radius: 50%;
-pointer-events: none;
-}
+    /* 置ける場所のガイド表示（ドット） */
+    .cell.valid-move::after {
+      content: '';
+      width: 28%;
+      height: 28%;
+      background-color: rgba(255, 255, 255, 0.45);
+      border-radius: 50%;
+      pointer-events: none;
+    }
 
-/* --------------------------------------------------
-石 (コマ) のアニメーション & スタイリング
--------------------------------------------------- */
-.disc {
-width: 84%;
-height: 84%;
-border-radius: 50%;
-position: relative;
-transform-style: preserve-3d;
-transition: transform 0.4s ease;
-box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-}
+    /* --------------------------------------------------
+       石 (コマ) のアニメーション & スタイリング
+       -------------------------------------------------- */
+    .disc {
+      width: 84%;
+      height: 84%;
+      border-radius: 50%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.4s ease;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
 
-.disc.black {
-background: radial-gradient(circle at 30% 30%, #555, #111);
-}
+    .disc.black {
+      background: radial-gradient(circle at 30% 30%, #555, #111);
+    }
 
-.disc.white {
-background: radial-gradient(circle at 30% 30%, #ffffff, #dddddd);
-border: 1px solid #ccc;
-}
+    .disc.white {
+      background: radial-gradient(circle at 30% 30%, #ffffff, #dddddd);
+      border: 1px solid #ccc;
+    }
 
-.disc.flip {
-animation: flipAnim 0.4s ease-in-out;
-}
+    .disc.flip {
+      animation: flipAnim 0.4s ease-in-out;
+    }
 
-@keyframes flipAnim {
-0% { transform: scale(1) rotateY(0deg); }
-50% { transform: scale(1.15) rotateY(90deg); }
-100% { transform: scale(1) rotateY(180deg); }
-}
+    @keyframes flipAnim {
+      0% { transform: scale(1) rotateY(0deg); }
+      50% { transform: scale(1.15) rotateY(90deg); }
+      100% { transform: scale(1) rotateY(180deg); }
+    }
 
-/* --------------------------------------------------
-結果画面 (オーバーレイ)
--------------------------------------------------- */
-.game-over-banner {
-display: none;
-position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background: rgba(255, 255, 255, 0.95);
-color: #333;
-border-radius: 12px;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-padding: 15px;
-gap: 12px;
-z-index: 10;
-animation: fadeIn 0.3s ease;
-text-align: center;
-}
+    /* --------------------------------------------------
+       結果画面 (オーバーレイ)
+       -------------------------------------------------- */
+    .game-over-banner {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      color: #333;
+      border-radius: 12px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      gap: 16px;
+      z-index: 10;
+      animation: fadeIn 0.3s ease;
+      text-align: center;
+    }
 
-.game-over-banner.active {
-display: flex;
-}
+    .game-over-banner.active {
+      display: flex;
+    }
 
-.game-over-banner h2 {
-font-size: 1.4rem;
-color: #111;
-}
+    .game-over-banner h2 {
+      font-size: 1.6rem;
+      color: #111;
+    }
 
-/* 獲得画像を表示するエリア */
-.result-image-container {
-width: 100%;
-max-width: 280px;
-display: flex;
-justify-content: center;
-align-items: center;
-}
-
-.result-image-container img {
-width: 100%;
-height: auto;
-border-radius: 12px;
-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-border: 2px solid #e0e0e0;
-}
-
-@keyframes fadeIn {
-from { opacity: 0; }
-to { opacity: 1; }
-}
-</style>
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-<h1>6×6 オセロ</h1>
-<div class="subtitle">あなた (黒) vs CPU (白)</div>
-
-<!-- リセットボタン -->
-<div class="controls">
-<button class="btn-reset" onclick="resetGame()">最初からやり直す</button>
-</div>
-
-<!-- スコアと手番表示 -->
-<div class="info-board">
-<div class="score-box">
-<span class="indicator-disc black"></span>
-<span id="scoreBlack">2</span>
-<span style="margin: 0 4px; color: #aaa;">-</span>
-<span class="indicator-disc white"></span>
-<span id="scoreWhite">2</span>
-</div>
-<div class="status-msg" id="statusMsg">あなたの番です</div>
-</div>
-
-<!-- 盤面エリア -->
-<div class="board-container">
-<div id="board" class="board"></div>
-
-<!-- ゲーム終了時結果画面 -->
-<div id="gameOverBanner" class="game-over-banner">
-<h2 id="resultTitle">RESULT</h2>
-<!-- 動的に生成された画像が表示される要素 -->
-<div class="result-image-container" id="resultImageArea"></div>
-<button class="btn-reset" onclick="resetGame()">もう一度あそぶ</button>
-</div>
-</div>
-</div>
-
-<!-- 画像生成用の非表示Canvas -->
-<canvas id="rewardCanvas" width="300" height="300" style="display: none;"></canvas>
-
-<script>
-/* ==================================================
-ゲーム状態の管理定数および変数
-================================================== */
-const BOARD_SIZE = 6; // 6x6のマス目
-const BLACK = 1; // プレイヤー（黒）
-const WHITE = -1; // CPU（白）
-const EMPTY = 0; // 空マス
-
-let board = []; // 盤面状態（2次元配列）
-let currentPlayer = BLACK; // 現在の手番
-let isGameActive = true; // ゲーム進行中フラグ
-
-// チェック用8方向の移動量ベクトル
-const DIRECTIONS = [
-[-1, 0], [1, 0], [0, -1], [0, 1],
-[-1, -1], [-1, 1], [1, -1], [1, 1]
-];
-
-/* ==================================================
-初期化処理
-================================================== */
-function resetGame() {
-// 盤面初期化
-board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY));
-
-// 中央4マスに初期石を配置
-board[2][2] = WHITE;
-board[2][3] = BLACK;
-board[3][2] = BLACK;
-board[3][3] = WHITE;
-
-currentPlayer = BLACK;
-isGameActive = true;
-
-// 結果画面の非表示
-document.getElementById('gameOverBanner').classList.remove('active');
-
-render();
-}
-
-/* ==================================================
-オセロのルール・判定ロジック
-================================================== */
-
-function isValidPosition(r, c) {
-return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
-}
-
-// 指定マスに石を置いた場合に裏返せる石のリストを取得
-function getFlippableDiscs(r, c, player) {
-if (board[r][c] !== EMPTY) return [];
-
-let flippable = [];
-
-for (const [dr, dc] of DIRECTIONS) {
-let nr = r + dr;
-let nc = c + dc;
-let tempLine = [];
-
-while (isValidPosition(nr, nc) && board[nr][nc] === -player) {
-tempLine.push([nr, nc]);
-nr += dr;
-nc += dc;
-}
-
-if (isValidPosition(nr, nc) && board[nr][nc] === player) {
-flippable = flippable.concat(tempLine);
-}
-}
-
-return flippable;
-}
-
-// 置けるマスの一覧を取得
-function getValidMoves(player) {
-const moves = [];
-for (let r = 0; r < BOARD_SIZE; r++) {
-for (let c = 0; c < BOARD_SIZE; c++) {
-const flippable = getFlippableDiscs(r, c, player);
-if (flippable.length > 0) {
-moves.push({ r, c, flippable });
-}
-}
-}
-return moves;
-}
-
-/* ==================================================
-着手処理と手番の管理
-================================================== */
-function handleCellClick(r, c) {
-if (!isGameActive) return;
-
-// CPUの手番中はプレイヤーのクリックを無効化
-if (currentPlayer === WHITE) return;
-
-executeMove(r, c);
-}
-
-function executeMove(r, c) {
-const flippable = getFlippableDiscs(r, c, currentPlayer);
-
-if (flippable.length === 0) return;
-
-board[r][c] = currentPlayer;
-
-flippable.forEach(([fr, fc]) => {
-board[fr][fc] = currentPlayer;
-});
-
-render(r, c, flippable);
-
-switchTurn();
-}
-
-function switchTurn() {
-currentPlayer = -currentPlayer;
-
-const currentValidMoves = getValidMoves(currentPlayer);
-
-// パス判定
-if (currentValidMoves.length === 0) {
-const opponentValidMoves = getValidMoves(-currentPlayer);
-// 両者置けない場合はゲーム終了
-if (opponentValidMoves.length === 0) {
-endGame();
-return;
-}
-
-// パス処理
-const passedPlayerName = (currentPlayer === BLACK) ? 'あなた' : 'CPU';
-currentPlayer = -currentPlayer; // 手番を元に戻す
-
-updateUI();
-alert(`${passedPlayerName}は置ける場所がないためパスします。`);
-
-if (currentPlayer === WHITE) {
-setTimeout(makeCpuMove, 600);
-}
-return;
-}
-
-updateUI();
-
-// CPUの手番の場合
-if (currentPlayer === WHITE && isGameActive) {
-setTimeout(makeCpuMove, 600);
-}
-}
-
-/* ==================================================
-CPU ロジック
-================================================== */
-function makeCpuMove() {
-if (!isGameActive) return;
-
-const validMoves = getValidMoves(WHITE);
-if (validMoves.length === 0) return;
-
-// 評価テーブル (角重視)
-const weights = [
-[100, -20, 10, 10, -20, 100],
-[-20, -50, -2, -2, -50, -20],
-[ 10, -2, 1, 1, -2, 10],
-[ 10, -2, 1, 1, -2, 10],
-[-20, -50, -2, -2, -50, -20],
-[100, -20, 10, 10, -20, 100]
-];
-
-let bestMove = validMoves[0];
-let maxScore = -9999;
-
-validMoves.forEach(move => {
-const score = weights[move.r][move.c] + move.flippable.length;
-if (score > maxScore) {
-maxScore = score;
-bestMove = move;
-}
-});
-
-executeMove(bestMove.r, bestMove.c);
-}
-
-/* ==================================================
-ゲーム終了処理 & 画像生成
-================================================== */
-function endGame() {
-isGameActive = false;
-
-let blackCount = 0;
-let whiteCount = 0;
-for (let r = 0; r < BOARD_SIZE; r++) {
-for (let c = 0; c < BOARD_SIZE; c++) {
-if (board[r][c] === BLACK) blackCount++;
-if (board[r][c] === WHITE) whiteCount++;
-}
-}
-
-const imgContainer = document.getElementById('resultImageArea');
-
-// 勝利したときのみ画像を表示
-if (blackCount > whiteCount) {
-document.getElementById('resultTitle').textContent = 'YOU WIN!';
-// 勝利時のみ「R」の一文字画像を生成して表示
-generateRewardImage(blackCount);
-} else if (blackCount < whiteCount) {
-document.getElementById('resultTitle').textContent = 'YOU LOSE...';
-imgContainer.innerHTML = '<p style="color: #666; margin: 30px 0; font-size: 0.95rem;">勝利すると報酬画像が表示されます</p>';
-} else {
-document.getElementById('resultTitle').textContent = 'DRAW!';
-imgContainer.innerHTML = '<p style="color: #666; margin: 30px 0; font-size: 0.95rem;">勝利すると報酬画像が表示されます</p>';
-}
-
-document.getElementById('gameOverBanner').classList.add('active');
-}
-
-// 「R」の一文字画像をCanvasで生成する関数
-function generateRewardImage(score) {
-const canvas = document.getElementById('rewardCanvas');
-const ctx = canvas.getContext('2d');
-
-// 背景のクリア・塗りつぶし
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, 300, 300);
-
-// 外枠の描画
-ctx.strokeStyle = '#222222';
-ctx.lineWidth = 6;
-ctx.strokeRect(12, 12, 276, 276);
-
-// 内側の飾枠
-ctx.strokeStyle = '#e0e0e0';
-ctx.lineWidth = 2;
-ctx.strokeRect(20, 20, 260, 260);
-
-// 獲得マス数に応じて「R」の色を選択
-let rColor = '#0d6efd'; // デフォルト：ブルー
-if (score >= 28) {
-rColor = '#d4af37'; // 28マス以上：ゴールド
-} else if (score >= 20) {
-rColor = '#a0a0a0'; // 20マス以上：シルバー
-} else if (score >= 14) {
-rColor = '#b87333'; // 14マス以上：ブロンズ
-}
-
-// 中央に「R」の一文字を大きく描画
-ctx.fillStyle = rColor;
-ctx.font = '900 180px "Arial Black", "Helvetica Neue", sans-serif';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-ctx.fillText('R', 150, 150);
-
-// Canvasから画像化して表示エリアに挿入
-const imgUrl = canvas.toDataURL('image/png');
-const imgContainer = document.getElementById('resultImageArea');
-imgContainer.innerHTML = `<img src="${imgUrl}" alt="結果画像 R">`;
-}
-
-/* ==================================================
-UI描画・画面更新
-================================================== */
-function render(lastR = -1, lastC = -1, flippedCoords = []) {
-const boardEl = document.getElementById('board');
-boardEl.innerHTML = '';
-
-const validMoves = isGameActive ? getValidMoves(currentPlayer) : [];
-
-for (let r = 0; r < BOARD_SIZE; r++) {
-for (let c = 0; c < BOARD_SIZE; c++) {
-const cell = document.createElement('div');
-cell.className = 'cell';
-
-// 置ける場所のガイド表示（プレイヤーの手番のみ）
-const isValid = validMoves.some(m => m.r === r && m.c === c);
-if (isValid && currentPlayer === BLACK) {
-cell.classList.add('valid-move');
-}
-
-cell.addEventListener('click', () => handleCellClick(r, c));
-
-if (board[r][c] !== EMPTY) {
-const disc = document.createElement('div');
-const colorClass = board[r][c] === BLACK ? 'black' : 'white';
-disc.className = `disc ${colorClass}`;
-
-const isFlipped = flippedCoords.some(([fr, fc]) => fr === r && fc === c);
-if (isFlipped) {
-disc.classList.add('flip');
-}
-
-cell.appendChild(disc);
-}
-
-boardEl.appendChild(cell);
-}
-}
-
-updateUI();
-}
-
-function updateUI() {
-let blackCount = 0;
-let whiteCount = 0;
-
-for (let r = 0; r < BOARD_SIZE; r++) {
-for (let c = 0; c < BOARD_SIZE; c++) {
-if (board[r][c] === BLACK) blackCount++;
-if (board[r][c] === WHITE) whiteCount++;
-}
-}
-
-document.getElementById('scoreBlack').textContent = blackCount;
-document.getElementById('scoreWhite').textContent = whiteCount;
-
-const statusMsg = document.getElementById('statusMsg');
-if (isGameActive) {
-statusMsg.textContent = currentPlayer === BLACK ? 'あなたの番です' : 'CPU考え中...';
-} else {
-statusMsg.textContent = 'ゲーム終了';
-}
-}
-
-// 初回起動
-window.onload = resetGame;
-</script>
+  <div class="container">
+    <h1>6×6 オセロ</h1>
+    <div class="subtitle">あなた (黒) vs CPU (白)</div>
+
+    <!-- リセットボタン -->
+    <div class="controls">
+      <button class="btn-reset" onclick="resetGame()">最初からやり直す</button>
+    </div>
+
+    <!-- スコアと手番表示 -->
+    <div class="info-board">
+      <div class="score-box">
+        <span class="indicator-disc black"></span>
+        <span id="scoreBlack">2</span>
+        <span style="margin: 0 4px; color: #aaa;">-</span>
+        <span class="indicator-disc white"></span>
+        <span id="scoreWhite">2</span>
+      </div>
+      <div class="status-msg" id="statusMsg">あなたの番です</div>
+    </div>
+
+    <!-- 盤面エリア -->
+    <div class="board-container">
+      <div id="board" class="board"></div>
+
+      <!-- ゲーム終了時結果画面 -->
+      <div id="gameOverBanner" class="game-over-banner">
+        <h2 id="resultTitle">RESULT</h2>
+        <p id="redirectMsg" style="display:none; color: #0d6efd; font-weight: bold; font-size: 0.9rem;">
+          クリアおめでとうございます！<br>画面が変わらない場合は下のボタンを押してください。
+        </p>
+        <button id="clearRedirectBtn" class="btn-reset" style="display:none; background-color: #28a745;" onclick="goToNextSpot()">次へすすむ</button>
+        <button class="btn-reset" onclick="window.resetGame()">もう一度あそぶ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==================================================
+       ゲーム状態の管理定数および変数
+       ================================================== */
+    const BOARD_SIZE = 6;       // 6x6のマス目
+    const BLACK = 1;            // プレイヤー（黒）
+    const WHITE = -1;           // CPU（白）
+    const EMPTY = 0;            // 空マス
+
+    let board = [];             // 盤面状態（2次元配列）
+    let currentPlayer = BLACK;  // 現在の手番
+    let isGameActive = true;    // ゲーム進行中フラグ
+
+    // チェック用8方向の移動量ベクトル
+    const DIRECTIONS = [
+      [-1,  0], [1,  0], [0, -1], [0,  1],
+      [-1, -1], [-1, 1], [1, -1], [1,  1]
+    ];
+
+    /* ==================================================
+       判定・ルール計算関数
+       ================================================== */
+
+    // 指定位置 (r, c) が盤面内にあるか確認
+    function isValidPosition(r, c) {
+      return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+    }
+
+    // 指定マスに石を置いた場合に裏返せる石のリストを取得
+    function getFlippableDiscs(r, c, player) {
+      if (board[r][c] !== EMPTY) return [];
+
+      let flippable = [];
+
+      for (const [dr, dc] of DIRECTIONS) {
+        let nr = r + dr;
+        let nc = c + dc;
+        let tempLine = [];
+
+        while (isValidPosition(nr, nc) && board[nr][nc] === -player) {
+          tempLine.push([nr, nc]);
+          nr += dr;
+          nc += dc;
+        }
+
+        if (isValidPosition(nr, nc) && board[nr][nc] === player) {
+          flippable = flippable.concat(tempLine);
+        }
+      }
+
+      return flippable;
+    }
+
+    // 指定プレイヤーが置けるマスの一覧を取得
+    function getValidMoves(player) {
+      const moves = [];
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const flippable = getFlippableDiscs(r, c, player);
+          if (flippable.length > 0) {
+            moves.push({ r, c, flippable });
+          }
+        }
+      }
+      return moves;
+    }
+
+    /* ==================================================
+       着手処理と手番の管理
+       ================================================== */
+    function handleCellClick(r, c) {
+      if (!isGameActive) return;
+
+      // CPUの手番中はプレイヤーのクリックを無効化
+      if (currentPlayer === WHITE) return;
+
+      executeMove(r, c);
+    }
+
+    function executeMove(r, c) {
+      const flippable = getFlippableDiscs(r, c, currentPlayer);
+
+      if (flippable.length === 0) return;
+
+      board[r][c] = currentPlayer;
+
+      flippable.forEach(([fr, fc]) => {
+        board[fr][fc] = currentPlayer;
+      });
+
+      render(r, c, flippable);
+
+      switchTurn();
+    }
+
+    function switchTurn() {
+      currentPlayer = -currentPlayer;
+
+      const currentValidMoves = getValidMoves(currentPlayer);
+
+      // パス判定
+      if (currentValidMoves.length === 0) {
+        const opponentValidMoves = getValidMoves(-currentPlayer);
+
+        // 両者置けない場合はゲーム終了
+        if (opponentValidMoves.length === 0) {
+          endGame();
+          return;
+        }
+
+        // パス処理
+        const passedPlayerName = (currentPlayer === BLACK) ? 'あなた' : 'CPU';
+        currentPlayer = -currentPlayer; // 手番を元に戻す
+
+        updateUI();
+        alert(`${passedPlayerName}は置ける場所がないためパスします。`);
+
+        if (currentPlayer === WHITE) {
+          setTimeout(makeCpuMove, 600);
+        }
+        return;
+      }
+
+      updateUI();
+
+      // CPUの手番の場合
+      if (currentPlayer === WHITE && isGameActive) {
+        setTimeout(makeCpuMove, 600);
+      }
+    }
+
+    /* ==================================================
+       CPU ロジック
+       ================================================== */
+    function makeCpuMove() {
+      if (!isGameActive) return;
+
+      const validMoves = getValidMoves(WHITE);
+      if (validMoves.length === 0) return;
+
+      // 評価テーブル (角重視)
+      const weights = [
+        [100, -20,  10,  10, -20, 100],
+        [-20, -50,  -2,  -2, -50, -20],
+        [ 10,  -2,   1,   1,  -2,  10],
+        [ 10,  -2,   1,   1,  -2,  10],
+        [-20, -50,  -2,  -2, -50, -20],
+        [100, -20,  10,  10, -20, 100]
+      ];
+
+      let bestMove = validMoves[0];
+      let maxScore = -9999;
+
+      validMoves.forEach(move => {
+        const score = weights[move.r][move.c] + move.flippable.length;
+        if (score > maxScore) {
+          maxScore = score;
+          bestMove = move;
+        }
+      });
+
+      executeMove(bestMove.r, bestMove.c);
+    }
+
+    /* ==================================================
+       初期化処理
+       ================================================== */
+    function resetGame() {
+      // 盤面初期化
+      board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY));
+
+      // 中央4マスに初期石を配置
+      board[2][2] = WHITE;
+      board[2][3] = BLACK;
+      board[3][2] = BLACK;
+      board[3][3] = WHITE;
+
+      currentPlayer = BLACK;
+      isGameActive = true;
+
+      // 結果画面の非表示
+      const banner = document.getElementById('gameOverBanner');
+      if (banner) {
+        banner.classList.remove('active');
+      }
+
+      render();
+    }
+
+    // グローバルスコープ(window)に明示的に紐付け
+    window.resetGame = resetGame;
+
+    /* ==================================================
+       ゲーム終了処理
+       ================================================== */
+    const CLEAR_URL = "https://ka2u5hi.github.io/my-web-app/test.html?clear_spot=2";
+
+    function goToNextSpot() {
+      // 1. 通常の遷移を試みる
+      try {
+        window.location.href = CLEAR_URL;
+      } catch (e) {
+        console.log(e);
+      }
+      // 2. iframe内からの親ウィンドウ遷移を試みる
+      try {
+        window.top.location.href = CLEAR_URL;
+      } catch (e) {
+        console.log(e);
+      }
+      // 3. 上記がブロックされた場合に別タブで開く
+      window.open(CLEAR_URL, '_blank');
+    }
+
+    // グローバルに登録
+    window.goToNextSpot = goToNextSpot;
+
+    function endGame() {
+      isGameActive = false;
+
+      let blackCount = 0;
+      let whiteCount = 0;
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          if (board[r][c] === BLACK) blackCount++;
+          if (board[r][c] === WHITE) whiteCount++;
+        }
+      }
+
+      const redirectBtn = document.getElementById('clearRedirectBtn');
+      const redirectMsg = document.getElementById('redirectMsg');
+
+      // 勝利・敗北・引き分けの判定とリダイレクト処理
+      if (blackCount > whiteCount) {
+        document.getElementById('resultTitle').textContent = 'YOU WIN!';
+
+        // クリアボタンとメッセージを表示
+        if (redirectBtn) redirectBtn.style.display = 'inline-block';
+        if (redirectMsg) redirectMsg.style.display = 'block';
+
+        // 自動リダイレクトの実行
+        goToNextSpot();
+      } else if (blackCount < whiteCount) {
+        document.getElementById('resultTitle').textContent = 'YOU LOSE...';
+        if (redirectBtn) redirectBtn.style.display = 'none';
+        if (redirectMsg) redirectMsg.style.display = 'none';
+      } else {
+        document.getElementById('resultTitle').textContent = 'DRAW!';
+        if (redirectBtn) redirectBtn.style.display = 'none';
+        if (redirectMsg) redirectMsg.style.display = 'none';
+      }
+
+      document.getElementById('gameOverBanner').classList.add('active');
+    }
+
+    /* ==================================================
+       UI描画・画面更新
+       ================================================== */
+    function render(lastR = -1, lastC = -1, flippedCoords = []) {
+      const boardEl = document.getElementById('board');
+      boardEl.innerHTML = '';
+
+      const validMoves = isGameActive ? getValidMoves(currentPlayer) : [];
+
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+
+          // 置ける場所のガイド表示（プレイヤーの手番のみ）
+          const isValid = validMoves.some(m => m.r === r && m.c === c);
+          if (isValid && currentPlayer === BLACK) {
+            cell.classList.add('valid-move');
+          }
+
+          cell.addEventListener('click', () => handleCellClick(r, c));
+
+          if (board[r][c] !== EMPTY) {
+            const disc = document.createElement('div');
+            const colorClass = board[r][c] === BLACK ? 'black' : 'white';
+            disc.className = `disc ${colorClass}`;
+
+            const isFlipped = flippedCoords.some(([fr, fc]) => fr === r && fc === c);
+            if (isFlipped) {
+              disc.classList.add('flip');
+            }
+
+            cell.appendChild(disc);
+          }
+
+          boardEl.appendChild(cell);
+        }
+      }
+
+      updateUI();
+    }
+
+    function updateUI() {
+      let blackCount = 0;
+      let whiteCount = 0;
+
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          if (board[r][c] === BLACK) blackCount++;
+          if (board[r][c] === WHITE) whiteCount++;
+        }
+      }
+
+      document.getElementById('scoreBlack').textContent = blackCount;
+      document.getElementById('scoreWhite').textContent = whiteCount;
+
+      const statusMsg = document.getElementById('statusMsg');
+      if (isGameActive) {
+        statusMsg.textContent = currentPlayer === BLACK ? 'あなたの番です' : 'CPU考え中...';
+      } else {
+        statusMsg.textContent = 'ゲーム終了';
+      }
+    }
+
+    // 初回起動
+    window.addEventListener('DOMContentLoaded', () => {
+      resetGame();
+    });
+  </script>
 </body>
 </html>
