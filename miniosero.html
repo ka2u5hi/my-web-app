@@ -489,20 +489,8 @@
     const CLEAR_URL = "https://ka2u5hi.github.io/my-web-app/test.html?clear_spot=2";
 
     function goToNextSpot() {
-      // 1. 通常の遷移を試みる
-      try {
-        window.location.href = CLEAR_URL;
-      } catch (e) {
-        console.log(e);
-      }
-      // 2. iframe内からの親ウィンドウ遷移を試みる
-      try {
-        window.top.location.href = CLEAR_URL;
-      } catch (e) {
-        console.log(e);
-      }
-      // 3. 上記がブロックされた場合に別タブで開く
-      window.open(CLEAR_URL, '_blank');
+      // 同じタブ（同じウィンドウ）で指定のURLに遷移
+      window.location.href = CLEAR_URL;
     }
 
     // グローバルに登録
@@ -531,7 +519,7 @@
         if (redirectBtn) redirectBtn.style.display = 'inline-block';
         if (redirectMsg) redirectMsg.style.display = 'block';
 
-        // 自動リダイレクトの実行
+        // 同じタブで自動リダイレクトの実行
         goToNextSpot();
       } else if (blackCount < whiteCount) {
         document.getElementById('resultTitle').textContent = 'YOU LOSE...';
