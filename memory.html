@@ -210,26 +210,6 @@
       margin-bottom: 16px;
       color: #4b5563;
     }
-
-    /* 25ターン以内クリア時の「R」表示スタイル */
-    .rank-r {
-      display: none;
-      font-size: 4rem;
-      font-weight: 900;
-      color: #f59e0b; /* 華やかなゴールド風カラー */
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
-      margin: 10px 0;
-    }
-
-    .rank-r.active {
-      display: block;
-      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes popIn {
-      0% { transform: scale(0); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
   </style>
 </head>
 <body>
@@ -255,8 +235,6 @@
   <div class="message-modal" id="modal">
     <div class="modal-content">
       <h2>🎉 ゲームクリア！</h2>
-      <!-- 25ターン以内達成時に表示される「R」の文字 -->
-      <div id="rank-r" class="rank-r">R</div>
       <p id="modal-text">クリアおめでとうございます！</p>
       <button class="btn" onclick="closeModalAndRestart()">もう一度あそぶ</button>
     </div>
@@ -422,23 +400,18 @@
     function showWinModal() {
       const modal = document.getElementById('modal');
       const text = document.getElementById('modal-text');
-      const rankR = document.getElementById('rank-r');
 
       text.textContent = `${turns} ターンで全てのペアを見つけました！`;
-
-      // 25ターン以内の場合のみ「R」を表示
-      if (turns <= 25) {
-        rankR.classList.add('active');
-      } else {
-        rankR.classList.remove('active');
-      }
-
       modal.classList.add('active');
+
+      // 20ターン以内の場合のみ指定のURLへリダイレクト
+      if (turns <= 20) {
+        window.location.href = "http://ka2u5hi.github.io/my-web-app/test.html?clear_spot=4";
+      }
     }
 
     function closeModalAndRestart() {
       document.getElementById('modal').classList.remove('active');
-      document.getElementById('rank-r').classList.remove('active');
       initGame();
     }
 
