@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Quest of R - ぼうけんのしょ</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,10 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- HTML5-QRCode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- ドット絵風フォント (Press Start 2P & DotGothic16) -->
+    <!-- ドット絵風フォント (DotGothic16) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -21,6 +21,7 @@
             background-color: #000000;
             color: #ffffff;
             image-rendering: pixelated;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* ドラクエ風ウインドウ（黒背景・白縁線） */
@@ -54,25 +55,6 @@
             background-color: #1f2937;
         }
 
-        /* コマンドカーソル風アロー */
-        .dq-cursor::before {
-            content: "▶";
-            position: absolute;
-            left: 8px;
-            color: #ffffff;
-            animation: blink 0.8s infinite steps(1);
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        /* 点滅アニメーション */
-        .pixel-blink {
-            animation: blink 1s infinite steps(1);
-        }
-
         /* ネオン・ゴールドグラデーション */
         .gold-text {
             color: #fbbf24;
@@ -83,6 +65,12 @@
         .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(2px);
+        }
+
+        /* HTML5-QRCodeのVideoを枠いっぱいにフィッティング */
+        #reader video {
+            object-fit: cover !important;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -126,7 +114,7 @@
                 <div class="text-[11px] text-gray-300 mb-2 font-bold tracking-widest flex items-center justify-center gap-1">
                     <i class="fa-solid fa-key text-yellow-400"></i> ふっかつのじゅもん（じゅもん）
                 </div>
-                <div id="keyword-slots" class="flex justify-center gap-1.5">
+                <div id="keyword-slots" class="flex justify-center gap-1.5 flex-wrap">
                     <!-- JSで動的生成 -->
                 </div>
             </div>
@@ -150,17 +138,20 @@
                 <h2 class="text-xs font-bold text-yellow-400 tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-qrcode"></i> まほうのたまで QRをさがす
                 </h2>
-                <span class="text-[10px] text-gray-400">かめら きどうちゅう</span>
+                <span id="scanner-badge" class="text-[10px] text-gray-400">かめら きどうちゅう</span>
             </div>
 
             <!-- スキャン枠 -->
-            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[200px] flex items-center justify-center">
+            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex items-center justify-center overflow-hidden">
                 <div id="reader" class="w-full"></div>
             </div>
 
-            <p id="scanner-status" class="text-[11px] text-gray-400 mt-2 text-center">
+            <p id="scanner-status" class="text-[11px] text-gray-400 mt-2 text-center px-1">
                 こうないの QRコード（まほうじん）に かざしてください
             </p>
+            <button id="retry-camera-btn" onclick="startScanner()" class="hidden mt-2 dq-button px-3 py-1 text-xs bg-yellow-600 border-yellow-300 text-black font-bold">
+                <i class="fa-solid fa-camera"></i> かめらを さいきどう
+            </button>
         </section>
 
         <!-- だいじなもの（つよさ・獲得ログ） -->
@@ -195,8 +186,8 @@
                 <h3 id="portal-title" class="text-base font-bold gold-text mt-1">たび の とびら が あらわれた！</h3>
             </div>
 
-            <div class="py-2">
-                <div class="w-14 h-14 bg-blue-950 border-2 border-cyan-400 rounded-full flex items-center justify-center mx-auto text-cyan-300 text-2xl shadow-lg animate-pulse mb-2">
+            <div class="py-1">
+                <div class="w-12 h-12 bg-blue-950 border-2 border-cyan-400 rounded-full flex items-center justify-center mx-auto text-cyan-300 text-xl shadow-lg animate-pulse mb-2">
                     <i class="fa-solid fa-dungeon"></i>
                 </div>
                 <p id="portal-description" class="text-xs text-gray-200 leading-relaxed bg-gray-950 p-2 border border-gray-700"></p>
@@ -207,7 +198,7 @@
                 <!-- JSで動的生成 -->
             </div>
 
-            <button onclick="closePortalModal()" class="w-full dq-button py-2 bg-gray-900 text-gray-400 text-xs border-gray-600 mt-2">
+            <button onclick="closePortalModal()" class="w-full dq-button py-2 bg-gray-900 text-gray-300 text-xs border-gray-600 mt-2">
                 あとで いどむ
             </button>
         </div>
@@ -376,6 +367,9 @@
                 if (spot && !foundSpotIds.includes(spot.id)) {
                     foundSpotIds.push(spot.id);
                     saveProgress();
+                    renderSpotList();
+                    renderKeywordSlots();
+                    updateProgressUI();
                     window.history.replaceState({}, document.title, window.location.pathname);
                     playSe('fanfare');
 
@@ -412,6 +406,7 @@
         // キーワードスロット表示
         function renderKeywordSlots() {
             const container = document.getElementById('keyword-slots');
+            if (!container) return;
             container.innerHTML = '';
 
             spotsData.forEach(spot => {
@@ -430,6 +425,7 @@
         // コレクション一覧
         function renderSpotList() {
             const listContainer = document.getElementById('spot-list');
+            if (!listContainer) return;
             listContainer.innerHTML = '';
 
             spotsData.forEach(spot => {
@@ -464,14 +460,18 @@
             const count = foundSpotIds.length;
             const percent = Math.round((count / total) * 100);
 
-            document.getElementById('progress-text').textContent = `${count} / ${total}`;
-            document.getElementById('progress-bar').style.width = `${percent}%`;
+            const textElem = document.getElementById('progress-text');
+            const barElem = document.getElementById('progress-bar');
+            if (textElem) textElem.textContent = `${count} / ${total}`;
+            if (barElem) barElem.style.width = `${percent}%`;
 
             const completeBanner = document.getElementById('complete-banner');
-            if (count === total) {
-                completeBanner.classList.remove('hidden');
-            } else {
-                completeBanner.classList.add('hidden');
+            if (completeBanner) {
+                if (count === total) {
+                    completeBanner.classList.remove('hidden');
+                } else {
+                    completeBanner.classList.add('hidden');
+                }
             }
         }
 
@@ -516,7 +516,7 @@
             btnContainer.innerHTML = '';
 
             // ゲームURLが複数ある場合・単数の場合でボタンを生成
-            spot.urls.forEach((game, index) => {
+            spot.urls.forEach((game) => {
                 const btn = document.createElement('button');
                 btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
                 btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
@@ -541,11 +541,16 @@
 
         // QRスキャナー起動
         function startScanner() {
+            const retryBtn = document.getElementById('retry-camera-btn');
+            const badgeElem = document.getElementById('scanner-badge');
+            if (retryBtn) retryBtn.classList.add('hidden');
+            if (badgeElem) badgeElem.textContent = "かめら きどうちゅう";
+
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
 
-            const config = { fps: 10, qrbox: { width: 180, height: 180 } };
+            const config = { fps: 10, qrbox: { width: 200, height: 200 } };
 
             html5QrCode.start(
                 { facingMode: "environment" },
@@ -556,7 +561,9 @@
                 () => {}
             ).catch(err => {
                 console.error("Camera error:", err);
-                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらの あくせすを きょかしてください。";
+                if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
+                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                if (retryBtn) retryBtn.classList.remove('hidden');
             });
         }
 
@@ -565,7 +572,7 @@
             closePortalModal();
             setTimeout(() => {
                 isScannerProcessing = false;
-            }, 500);
+            }, 300);
         }
 
         // メッセージモーダル
