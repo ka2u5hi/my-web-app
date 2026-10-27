@@ -67,10 +67,29 @@
             backdrop-filter: blur(2px);
         }
 
-        /* HTML5-QRCodeのVideoを枠いっぱいにフィッティング */
+        /* HTML5-QRCodeのVideoを枠いっぱいにフィッティング・レイアウト崩れ防止 */
+        #reader {
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+        }
         #reader video {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 280px;
             object-fit: cover !important;
             border-radius: 4px;
+        }
+        #reader canvas {
+            display: none !important;
+        }
+        #reader__scan_region {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #reader__dashboard {
+            display: none !important;
         }
     </style>
 </head>
@@ -101,7 +120,7 @@
                 <span class="text-xs text-yellow-400 font-bold tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-scroll"></i> クエスト しんちょく
                 </span>
-                <span id="progress-text" class="text-base font-bold text-white">0 / 6</span>
+                <span id="progress-text" class="text-base font-bold text-white">0 / 5</span>
             </div>
 
             <!-- プログレスバー（ドット調） -->
@@ -142,7 +161,7 @@
             </div>
 
             <!-- スキャン枠 -->
-            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex items-center justify-center overflow-hidden">
+            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[200px] flex items-center justify-center overflow-hidden rounded">
                 <div id="reader" class="w-full"></div>
             </div>
 
@@ -270,7 +289,7 @@
             }
         }
 
-        // --- データ設定（複数のURLを `urls` 配列に登録可能） ---
+        // --- データ設定（配列形式・文字列形式双方のコードに対応） ---
         const spotsData = [
             {
                 id: 1,
@@ -278,7 +297,8 @@
                 char: "文",
                 code: "SPOT_1",
                 urls: [
-                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" }
+                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
+                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
                 ]
             },
             {
@@ -287,7 +307,8 @@
                 char: "化",
                 code: "SPOT_2",
                 urls: [
-                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" }
+                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
+                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
                 ]
             },
             {
@@ -296,7 +317,8 @@
                 char: "祭",
                 code: "SPOT_3",
                 urls: [
-                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
+                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
                 ]
             },
             {
@@ -304,28 +326,15 @@
                 name: "キーワード 4",
                 char: "ク",
                 code: "SPOT_4",
-                urls: [
-                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" }
-                ]
+                urls: []
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "エ",
                 code: "SPOT_5",
-                urls: [
-                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
-                ]
+                urls: []
             },
-            {
-                id: 6,
-                name: "キーワード 6",
-                char: "スト",
-                code: "SPOT_6",
-                urls: [
-                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
-                ]
-            }
         ];
 
         let foundSpotIds = [];
@@ -475,19 +484,26 @@
             }
         }
 
-        // スキャン後の処理
-        function handleSpotDiscovered(code) {
+        // スキャン後の処理（配列・文字列いずれのcode定義にも対応）
+        function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
-            const spot = spotsData.find(s => s.code === code);
+            const trimmedCode = scannedCode.trim();
+
+            const spot = spotsData.find(s => {
+                if (Array.isArray(s.code)) {
+                    return s.code.includes(trimmedCode);
+                }
+                return s.code === trimmedCode;
+            });
 
             if (!spot) {
                 playSe('error');
                 showCustomModal(
                     "fa-circle-xmark",
                     "ふしぎな じゅもん",
-                    "しかし なにも おこらなかった！ (※無効なQRコードです)",
+                    `しかし なにも おこらなかった！\n(読み取った値: ${trimmedCode})`,
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
                 return;
@@ -501,9 +517,24 @@
                     `【 ${spot.name} 】の もじ【 ${spot.char} 】は すでに 解読済みだ！`,
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
-            } else {
+            } else if (spot.urls && spot.urls.length > 0) {
                 playSe('fanfare');
                 openGamePortal(spot);
+            } else {
+                // ミニゲームが無いスポットの場合は直接文字を獲得
+                foundSpotIds.push(spot.id);
+                saveProgress();
+                renderSpotList();
+                renderKeywordSlots();
+                updateProgressUI();
+                playSe('fanfare');
+
+                showCustomModal(
+                    "fa-gem",
+                    "じゅもん 解読！",
+                    `【 ${spot.name} 】の もじ【 ${spot.char} 】を てにいれた！`,
+                    [{ text: "とじる", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold", action: resumeScanner }]
+                );
             }
         }
 
@@ -533,7 +564,6 @@
 
         function closePortalModal() {
             document.getElementById('game-portal-modal').classList.add('hidden');
-            // ★モーダルを閉じたらスキャナーを確実に再開可能な状態に戻す
             setTimeout(() => {
                 isScannerProcessing = false;
             }, 300);
@@ -550,7 +580,22 @@
                 html5QrCode = new Html5Qrcode("reader");
             }
 
-            const config = { fps: 10, qrbox: { width: 200, height: 200 } };
+            // レスポンシブに対応したqrboxサイズ設定
+            const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+                const minEdgePercentage = 0.7; // 70%
+                const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+                return {
+                    width: qrboxSize,
+                    height: qrboxSize
+                };
+            };
+
+            const config = {
+                fps: 10,
+                qrbox: qrboxFunction,
+                aspectRatio: 1.0
+            };
 
             html5QrCode.start(
                 { facingMode: "environment" },
