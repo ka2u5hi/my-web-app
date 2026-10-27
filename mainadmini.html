@@ -72,21 +72,24 @@
             width: 100% !important;
             max-width: 100% !important;
             border: none !important;
+            position: relative !important;
         }
         #reader video {
             width: 100% !important;
             height: 100% !important;
-            max-height: 280px;
+            max-height: 250px;
             object-fit: cover !important;
             border-radius: 4px;
+            display: block !important;
         }
         #reader canvas {
             display: none !important;
         }
         #reader__scan_region {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
         }
         #reader__dashboard {
             display: none !important;
@@ -295,7 +298,7 @@
                 id: 1,
                 name: "キーワード 1",
                 char: "文",
-                code: "SPOT_1",
+                code: ["SPOT_1", "SPOT_2"],
                 urls: [
                     { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
                     { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
@@ -305,7 +308,7 @@
                 id: 2,
                 name: "キーワード 2",
                 char: "化",
-                code: "SPOT_2",
+                code: ["SPOT_3", "SPOT_4"],
                 urls: [
                     { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
                     { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
@@ -315,7 +318,7 @@
                 id: 3,
                 name: "キーワード 3",
                 char: "祭",
-                code: "SPOT_3",
+                code: ["SPOT_5", "SPOT_6"],
                 urls: [
                     { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
                     { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
@@ -325,14 +328,14 @@
                 id: 4,
                 name: "キーワード 4",
                 char: "ク",
-                code: "SPOT_4",
+                code: "SPOT_7",
                 urls: []
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "エ",
-                code: "SPOT_5",
+                code: "SPOT_8",
                 urls: []
             },
         ];
@@ -348,8 +351,27 @@
             renderSpotList();
             renderKeywordSlots();
             updateProgressUI();
-            startScanner();
+            
+            // ページ遷移復帰時の描画タイミングズレを防止
+            setTimeout(() => {
+                startScanner();
+            }, 100);
         };
+
+        // ブラウザの「戻る」や別タブ・リダイレクトからの復帰（pageshowイベント）で確実にスキャナーを再起動
+        window.addEventListener('pageshow', function(event) {
+            // キャッシュからの復帰（event.persisted）または復帰時にフラグ初期化＆スキャナー再起動
+            isScannerProcessing = false;
+            if (event.persisted) {
+                loadProgress();
+                renderSpotList();
+                renderKeywordSlots();
+                updateProgressUI();
+                setTimeout(() => {
+                    startScanner();
+                }, 200);
+            }
+        });
 
         function saveProgress() {
             localStorage.setItem('quest_of_r_dq_progress', JSON.stringify(foundSpotIds));
@@ -570,15 +592,33 @@
         }
 
         // QRスキャナー起動
-        function startScanner() {
+        async function startScanner() {
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
             if (retryBtn) retryBtn.classList.add('hidden');
             if (badgeElem) badgeElem.textContent = "かめら きどうちゅう";
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
+            isScannerProcessing = false;
+
+            // 既存のスキャナーインスタンスが残っている場合は停止して解放
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop().catch(() => {});
+                    await html5QrCode.clear().catch(() => {});
+                } catch(e) {
+                    console.log("Scanner cleanup", e);
+                }
+                html5QrCode = null;
             }
+
+            // 新しいインスタンスを生成
+            html5QrCode = new Html5Qrcode("reader");
+            initScannerInstance();
+        }
+
+        function initScannerInstance() {
+            const retryBtn = document.getElementById('retry-camera-btn');
+            const badgeElem = document.getElementById('scanner-badge');
 
             // レスポンシブに対応したqrboxサイズ設定
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
@@ -604,7 +644,9 @@
                     handleSpotDiscovered(decodedText);
                 },
                 () => {}
-            ).catch(err => {
+            ).then(() => {
+                if (badgeElem) badgeElem.textContent = "さつえいちゅう";
+            }).catch(err => {
                 console.error("Camera error:", err);
                 if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
                 document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
