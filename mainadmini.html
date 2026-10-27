@@ -160,20 +160,30 @@
                 <h2 class="text-xs font-bold text-yellow-400 tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-qrcode"></i> まほうのたまで QRをさがす
                 </h2>
-                <span id="scanner-badge" class="text-[10px] text-gray-400">かめら きどうちゅう</span>
+                <span id="scanner-badge" class="text-[10px] text-gray-400">ていしちゅう</span>
             </div>
 
             <!-- スキャン枠 -->
-            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[200px] flex items-center justify-center overflow-hidden rounded">
+            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex flex-col items-center justify-center overflow-hidden rounded p-2">
                 <div id="reader" class="w-full"></div>
+                <div id="start-overlay" class="flex flex-col items-center justify-center py-6 text-center z-10 space-y-3">
+                    <i class="fa-solid fa-camera text-4xl text-yellow-400 animate-pulse"></i>
+                    <p class="text-xs text-gray-300">「かめらを起動」ボタンを押して<br>QRコードにかざしてください</p>
+                    <button onclick="startScanner()" class="dq-button px-4 py-2 text-xs bg-yellow-500 text-black font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-power-off"></i> かめらを 起動する
+                    </button>
+                </div>
             </div>
 
             <p id="scanner-status" class="text-[11px] text-gray-400 mt-2 text-center px-1">
                 こうないの QRコード（まほうじん）に かざしてください
             </p>
-            <button id="retry-camera-btn" onclick="startScanner()" class="hidden mt-2 dq-button px-3 py-1 text-xs bg-yellow-600 border-yellow-300 text-black font-bold">
-                <i class="fa-solid fa-camera"></i> かめらを さいきどう
-            </button>
+
+            <div class="mt-2 w-full flex gap-2 justify-center">
+                <button id="retry-camera-btn" onclick="startScanner()" class="hidden dq-button px-3 py-1 text-xs bg-yellow-600 border-yellow-300 text-black font-bold">
+                    <i class="fa-solid fa-rotate-right"></i> かめらを さいきどう
+                </button>
+            </div>
         </section>
 
         <!-- だいじなもの（つよさ・獲得ログ） -->
@@ -292,13 +302,13 @@
             }
         }
 
-        // --- データ設定（配列形式・文字列形式双方のコードに対応） ---
+        // --- データ設定（id1つにつきSPOTも1つに設定） ---
         const spotsData = [
             {
                 id: 1,
                 name: "キーワード 1",
                 char: "文",
-                code: ["SPOT_1", "SPOT_2"],
+                code: "SPOT_1",
                 urls: [
                     { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
                     { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
@@ -308,7 +318,7 @@
                 id: 2,
                 name: "キーワード 2",
                 char: "化",
-                code: ["SPOT_3", "SPOT_4"],
+                code: "SPOT_2",
                 urls: [
                     { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
                     { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
@@ -318,7 +328,7 @@
                 id: 3,
                 name: "キーワード 3",
                 char: "祭",
-                code: ["SPOT_5", "SPOT_6"],
+                code: "SPOT_3",
                 urls: [
                     { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
                     { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
@@ -328,14 +338,14 @@
                 id: 4,
                 name: "キーワード 4",
                 char: "ク",
-                code: "SPOT_7",
+                code: "SPOT_4",
                 urls: []
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "エ",
-                code: "SPOT_8",
+                code: "SPOT_5",
                 urls: []
             },
         ];
@@ -351,26 +361,15 @@
             renderSpotList();
             renderKeywordSlots();
             updateProgressUI();
-            
-            // ページ遷移復帰時の描画タイミングズレを防止
-            setTimeout(() => {
-                startScanner();
-            }, 100);
         };
 
-        // ブラウザの「戻る」や別タブ・リダイレクトからの復帰（pageshowイベント）で確実にスキャナーを再起動
+        // ブラウザの「戻る」やリダイレクト復帰時
         window.addEventListener('pageshow', function(event) {
-            // キャッシュからの復帰（event.persisted）または復帰時にフラグ初期化＆スキャナー再起動
             isScannerProcessing = false;
-            if (event.persisted) {
-                loadProgress();
-                renderSpotList();
-                renderKeywordSlots();
-                updateProgressUI();
-                setTimeout(() => {
-                    startScanner();
-                }, 200);
-            }
+            loadProgress();
+            renderSpotList();
+            renderKeywordSlots();
+            updateProgressUI();
         });
 
         function saveProgress() {
@@ -506,26 +505,21 @@
             }
         }
 
-        // スキャン後の処理（配列・文字列いずれのcode定義にも対応）
+        // スキャン後の処理
         function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
-            const trimmedCode = scannedCode.trim();
+            const trimmedCode = (scannedCode || "").trim();
 
-            const spot = spotsData.find(s => {
-                if (Array.isArray(s.code)) {
-                    return s.code.includes(trimmedCode);
-                }
-                return s.code === trimmedCode;
-            });
+            const spot = spotsData.find(s => s.code === trimmedCode);
 
             if (!spot) {
                 playSe('error');
                 showCustomModal(
                     "fa-circle-xmark",
                     "ふしぎな じゅもん",
-                    `しかし なにも おこらなかった！\n(読み取った値: ${trimmedCode})`,
+                    `しかし なにも おこらなかった！ (※無効なQRコードです)`,
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
                 return;
@@ -568,14 +562,12 @@
             const btnContainer = document.getElementById('portal-buttons-container');
             btnContainer.innerHTML = '';
 
-            // ゲームURLが複数ある場合・単数の場合でボタンを生成
             spot.urls.forEach((game) => {
                 const btn = document.createElement('button');
                 btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
                 btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
                 btn.onclick = () => {
                     playSe('click');
-                    // 選択したミニゲームへ直接リダイレクト（同じタブ）
                     window.location.href = game.url;
                 };
                 btnContainer.appendChild(btn);
@@ -591,49 +583,37 @@
             }, 300);
         }
 
-        // QRスキャナー起動
+        // QRスキャナー起動（ユーザーのタップをトリガーにして安全起動）
         async function startScanner() {
+            const overlay = document.getElementById('start-overlay');
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
+
             if (retryBtn) retryBtn.classList.add('hidden');
-            if (badgeElem) badgeElem.textContent = "かめら きどうちゅう";
+            if (badgeElem) badgeElem.textContent = "きどうちゅう...";
 
             isScannerProcessing = false;
 
-            // 既存のスキャナーインスタンスが残っている場合は停止して解放
             if (html5QrCode) {
                 try {
                     await html5QrCode.stop().catch(() => {});
                     await html5QrCode.clear().catch(() => {});
                 } catch(e) {
-                    console.log("Scanner cleanup", e);
+                    console.log("Cleanup exception", e);
                 }
                 html5QrCode = null;
             }
 
-            // 新しいインスタンスを生成
+            if (overlay) overlay.classList.add('hidden');
+
             html5QrCode = new Html5Qrcode("reader");
-            initScannerInstance();
-        }
-
-        function initScannerInstance() {
-            const retryBtn = document.getElementById('retry-camera-btn');
-            const badgeElem = document.getElementById('scanner-badge');
-
-            // レスポンシブに対応したqrboxサイズ設定
-            const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgePercentage = 0.7; // 70%
-                const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
-                return {
-                    width: qrboxSize,
-                    height: qrboxSize
-                };
-            };
 
             const config = {
                 fps: 10,
-                qrbox: qrboxFunction,
+                qrbox: (viewfinderWidth, viewfinderHeight) => {
+                    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    return { width: Math.floor(minEdge * 0.75), height: Math.floor(minEdge * 0.75) };
+                },
                 aspectRatio: 1.0
             };
 
@@ -643,14 +623,18 @@
                 (decodedText) => {
                     handleSpotDiscovered(decodedText);
                 },
-                () => {}
+                (errorMessage) => {
+                    // スキャン中フレームごとの未検出エラーはスルー
+                }
             ).then(() => {
                 if (badgeElem) badgeElem.textContent = "さつえいちゅう";
+                document.getElementById('scanner-status').textContent = "QRコードを枠内にあわせてください";
             }).catch(err => {
-                console.error("Camera error:", err);
-                if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
-                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                console.error("Camera start error:", err);
+                if (badgeElem) badgeElem.textContent = "エラー";
+                document.getElementById('scanner-status').textContent = "※かめらの 起動に しっぱいしました。ブラウザのカメラ許可を確認してください。";
                 if (retryBtn) retryBtn.classList.remove('hidden');
+                if (overlay) overlay.classList.remove('hidden');
             });
         }
 
