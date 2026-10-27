@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>一筆書きパズル - Line Trace Master</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
+    
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Fredoka', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #board {
+      touch-action: none;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Modal animations */
+    .modal-enter {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    .modal-enter-active {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 300ms, transform 300ms;
+    }
+
+    .pulse-glow {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.85; }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between items-center p-2 sm:p-4">
+
+  <!-- Header Section -->
+  <header class="w-full max-w-lg flex justify-between items-center py-2 px-1">
+    <div class="flex items-center gap-2">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-draw-polygon"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-lg sm:text-xl tracking-wide bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+          一筆書きパズル
+        </h1>
+        <p class="text-xs text-slate-400">Line Trace Master</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats / Level Selector Trigger -->
+    <div class="flex items-center gap-2">
+      <button id="levelSelectBtn" class="bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold px-3 py-2 rounded-xl border border-slate-700 flex items-center gap-2 text-sm transition-all active:scale-95 shadow-md">
+        <i class="fa-solid fa-map"></i>
+        <span id="currentLevelTag">Lv.1</span>
+        <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="w-full max-w-lg flex-1 flex flex-col items-center justify-center gap-3 my-1">
+    
+    <!-- Status & Info Card -->
+    <div class="w-full bg-slate-800/80 backdrop-blur-md rounded-2xl p-3 sm:p-4 border border-slate-700/60 shadow-lg flex flex-col gap-2">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">進捗:</span>
+          <span id="edgeCounter" class="text-lg font-black text-emerald-400">0 / 0</span>
+          <span class="text-xs text-slate-400">本</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="starContainer" class="flex text-amber-400 text-sm gap-1">
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+            <i class="fa-solid fa-star"></i>
+          </div>
+          <span id="timerText" class="font-mono text-xs text-slate-400 bg-slate-900/60 px-2 py-1 rounded-md">00:00</span>
+        </div>
+      </div>
+
+      <!-- Helper Message Box -->
+      <div id="msgBox" class="text-xs sm:text-sm text-slate-300 bg-slate-900/50 rounded-xl px-3 py-2 flex items-center gap-2 border border-slate-800 transition-colors">
+        <i class="fa-solid fa-circle-info text-indigo-400 shrink-0"></i>
+        <span id="msg" class="truncate">好きな点を選んで一筆書きを開始してください</span>
+      </div>
+    </div>
+
+    <!-- Canvas Canvas Container -->
+    <div class="relative w-full aspect-[4/3] max-h-[460px] flex justify-center items-center">
+      <canvas id="board" class="w-full h-full bg-slate-800/90 rounded-2xl border border-slate-700/50 cursor-pointer block"></canvas>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="w-full grid grid-cols-4 gap-2">
+      <button id="undoBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl border border-slate-700/70 flex flex-col items-center justify-center gap-1 transition-all active:scale-95">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span class="text-[10px]">1手戻す</span>
+      </button>
+      <button id="resetBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl border border-slate-700/70 flex flex-col items-center justify-center gap-1 transition-all active:scale-95">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span class="text-[10px]">やり直し</span>
+      </button>
+      <button id="hintBtn" class="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold py-3 rounded-xl border border-slate-700/70 flex flex-col items-center justify-center gap-1 transition-all active:scale-95">
+        <i class="fa-solid fa-lightbulb"></i>
+        <span class="text-[10px]">ヒント</span>
+      </button>
+      <button id="soundToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl border border-slate-700/70 flex flex-col items-center justify-center gap-1 transition-all active:scale-95">
+        <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+        <span class="text-[10px]">音: ON</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Level Select Modal -->
+  <div id="levelModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-3xl p-5 flex flex-col gap-4 shadow-2xl max-h-[85vh]">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-700">
+        <h2 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-indigo-400"></i> ステージ選択
+        </h2>
+        <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center hover:bg-slate-600 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Level Grid -->
+      <div id="levelGrid" class="grid grid-cols-3 gap-3 overflow-y-auto pr-1 py-1 max-h-[50vh]">
+        <!-- Dynamic Level Buttons rendered here -->
+      </div>
+
+      <div class="pt-2 border-t border-slate-700 flex justify-between items-center text-xs text-slate-400">
+        <span>全ステージ: <strong id="totalStars" class="text-amber-400 font-bold">0</strong> ★</span>
+        <button id="clearDataBtn" class="text-slate-500 hover:text-rose-400 underline transition">進捗リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear Victory Modal -->
+  <div id="clearModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-3xl p-6 flex flex-col items-center text-center gap-4 shadow-2xl relative overflow-hidden">
+      <!-- Glow decoration -->
+      <div class="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
+      <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-pink-500/20 rounded-full blur-2xl"></div>
+
+      <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 flex items-center justify-center text-4xl shadow-lg shadow-amber-400/20 pulse-glow">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-black text-slate-100">ステージクリア！</h2>
+        <p id="clearLevelTitle" class="text-xs text-slate-400 mt-1">STAGE 1</p>
+      </div>
+
+      <div id="clearStars" class="flex text-amber-400 text-2xl gap-2 py-1">
+        <i class="fa-solid fa-star"></i>
+        <i class="fa-solid fa-star"></i>
+        <i class="fa-solid fa-star"></i>
+      </div>
+
+      <div class="w-full bg-slate-900/60 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs text-slate-300">
+        <div>
+          <span class="text-slate-500 block">タイム</span>
+          <span id="clearTime" class="font-bold text-slate-200 text-sm">00:12</span>
+        </div>
+        <div>
+          <span class="text-slate-500 block">ミス数</span>
+          <span id="clearMistakes" class="font-bold text-slate-200 text-sm">0回</span>
+        </div>
+      </div>
+
+      <div class="w-full flex gap-2 mt-2">
+        <button id="retryLevelBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 rounded-xl text-sm transition active:scale-95">
+          もう一度
+        </button>
+        <button id="nextLevelBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition active:scale-95">
+          次へ進む <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ==========================================
+      // Web Audio API を使用した効果音合成クラス
+      // ==========================================
+      class SoundFx {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+
+        // オーディオコンテキストの初期化（ユーザー操作後に起動可能）
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+        }
+
+        // 指定した周波数・波形・長さでトーンを再生
+        playTone(freq, duration = 0.1, type = 'sine', gainVal = 0.1) {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+          } catch(e){}
+        }
+
+        // 効果音定義
+        step() { this.playTone(440, 0.08, 'sine', 0.15); }      // タッチ/ステップ音
+        connect() { this.playTone(587.33, 0.12, 'triangle', 0.2); } // 接続成功音
+        error() { this.playTone(180, 0.2, 'sawtooth', 0.15); }   // 失敗・ミス音
+        undo() { this.playTone(320, 0.1, 'sine', 0.1); }        // 1手戻す/リセット音
+        win() {                                                 // クリアファンファーレ
+          if (!this.enabled) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((n, i) => {
+            setTimeout(() => this.playTone(n, 0.2, 'triangle', 0.2), i * 100);
+          });
+        }
+      }
+      const sound = new SoundFx();
+
+      // ==========================================
+      // ステージ（レベル）データ定義
+      // 各レベルは頂点座標 nodes: [x, y] と辺データ edges: [from, to] を保持
+      // 全6ステージ（全体的に難易度を下げ、解きやすく調整）
+      // ==========================================
+      const LEVELS = [
+        {
+          id: 1,
+          name: "ハート",
+          nodes: [[240, 310], [100, 190], [100, 100], [180, 60], [240, 110], [300, 60], [380, 100], [380, 190]],
+          edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0], [0, 4]]
+        },
+        {
+          id: 2,
+          name: "ダイヤモンド",
+          nodes: [[240, 40], [390, 180], [240, 320], [90, 180], [240, 180]],
+          edges: [[0, 1], [1, 2], [2, 3], [3, 0], [0, 4], [2, 4]]
+        },
+        {
+          id: 3,
+          name: "リボン",
+          nodes: [[80, 80], [80, 280], [240, 180], [400, 80], [400, 280]],
+          edges: [[0, 1], [1, 2], [2, 0], [2, 3], [3, 4], [4, 2]]
+        },
+        {
+          id: 4,
+          name: "おうち",
+          nodes: [[240, 50], [120, 150], [360, 150], [120, 300], [360, 300]],
+          edges: [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 4], [1, 4]]
+        },
+        {
+          id: 5,
+          name: "風車",
+          nodes: [[240, 180], [120, 80], [240, 60], [360, 80], [360, 280], [240, 300], [120, 280]],
+          edges: [[0, 1], [1, 2], [2, 0], [0, 3], [3, 4], [4, 0], [0, 5], [5, 6], [6, 0]]
+        },
+        {
+          id: 6,
+          name: "星",
+          nodes: [[240, 40], [290, 140], [410, 140], [315, 210], [350, 320], [240, 245], [130, 320], [165, 210], [70, 140], [190, 140]],
+          edges: [[0, 2], [2, 4], [4, 6], [6, 8], [8, 0], [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]]
+        }
+      ];
+
+      // ==========================================
+      // キャンバス & ゲーム定数・変数
+      // ==========================================
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const W = 480, H = 360, HIT_RADIUS = 32; // キャンバス基準解像度および判定半径
+
+      // DOM要素の参照を取得
+      const msgEl = document.getElementById("msg");
+      const msgBox = document.getElementById("msgBox");
+      const edgeCounter = document.getElementById("edgeCounter");
+      const levelTag = document.getElementById("currentLevelTag");
+      const timerText = document.getElementById("timerText");
+      const starContainer = document.getElementById("starContainer");
+      
+      const levelModal = document.getElementById("levelModal");
+      const levelGrid = document.getElementById("levelGrid");
+      const clearModal = document.getElementById("clearModal");
+
+      // ゲーム状態の管理変数
+      let currentLevelIdx = 0;
+      let usedEdges = new Set();       // 通過済みの辺（"a-b"形式で記憶）
+      let pathNodes = [];              // 辿った頂点の順序
+      let cur = null;                  // 現在地点の頂点インデックス
+      let dragging = false;            // ドラッグ中フラグ
+      let pointerId = null;            // アクティブなポインターID
+      let currentPointerPos = null;    // 現在のポインター座標
+      let particles = [];              // パーティクルアニメーション配列
+      let startTime = null;            // タイマー開始時刻
+      let timerInterval = null;        // タイマーインターバルID
+      let mistakes = 0;                // ミス回数
+      let showHint = false;            // ヒント表示フラグ
+      let soundEnabled = true;         // サウンド有効フラグ
+
+      // LocalStorage から進捗状況を読み込み
+      let userProgress = JSON.parse(localStorage.getItem("line_trace_progress") || "{}");
+
+      // ==========================================
+      // ヘルパー関数群
+      // ==========================================
+
+      // 頂点ペアから一意な辺キーを作成 ("1-3")
+      function getEdgeKey(a, b) {
+        return a < b ? `${a}-${b}` : `${b}-${a}`;
+      }
+
+      // レベル内に2点をつなぐ辺が存在するか確認
+      function hasEdge(level, a, b) {
+        const k = getEdgeKey(a, b);
+        return level.edges.some(e => getEdgeKey(e[0], e[1]) === k);
+      }
+
+      // イベント座標を基準解像度 (480x360) に変換
+      function getPointerPos(ev) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (ev.clientX - rect.left) * (W / rect.width),
+          y: (ev.clientY - rect.top) * (H / rect.height)
+        };
+      }
+
+      // ポインター位置の近くにある頂点を検索
+      function findNodeNear(p, lim = HIT_RADIUS) {
+        const level = LEVELS[currentLevelIdx];
+        let found = -1;
+        let minDistSq = lim * lim;
+        level.nodes.forEach((n, idx) => {
+          const dSq = (p.x - n[0]) ** 2 + (p.y - n[1]) ** 2;
+          if (dSq <= minDistSq) {
+            minDistSq = dSq;
+            found = idx;
+          }
+        });
+        return found;
+      }
+
+      // 進捗データの保存
+      function saveProgress(levelId, stars) {
+        if (!userProgress[levelId] || userProgress[levelId].stars < stars) {
+          userProgress[levelId] = { stars: stars, completed: true };
+        }
+        localStorage.setItem("line_trace_progress", JSON.stringify(userProgress));
+      }
+
+      // キラキラ演出用パーティクルの生成
+      function addParticles(x, y, color = "#60a5fa", count = 8) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1 + Math.random() * 3;
+          particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1,
+            decay: 0.03 + Math.random() * 0.03,
+            color,
+            size: 3 + Math.random() * 3
+          });
+        }
+      }
+
+      // パーティクルの更新処理
+      function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      // ==========================================
+      // 描画メイン処理 (Render Loop)
+      // ==========================================
+      function draw() {
+        const level = LEVELS[currentLevelIdx];
+        ctx.clearRect(0, 0, W, H);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        // 1. 未訪問・訪問済みの辺を描画
+        level.edges.forEach(([a, b]) => {
+          const key = getEdgeKey(a, b);
+          const isVisited = usedEdges.has(key);
+          ctx.beginPath();
+          ctx.moveTo(level.nodes[a][0], level.nodes[a][1]);
+          ctx.lineTo(level.nodes[b][0], level.nodes[b][1]);
+
+          if (isVisited) {
+            // 通過済みの線（外線＆内側のハイライト）
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = "#3b82f6";
+            ctx.stroke();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#93c5fd";
+            ctx.stroke();
+          } else {
+            // 未通過の線
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = "#334155";
+            ctx.stroke();
+          }
+        });
+
+        // 2. ヒント機能のガイド描画（現在地点から進める未通の線）
+        if (showHint && cur !== null) {
+          level.edges.forEach(([a, b]) => {
+            const key = getEdgeKey(a, b);
+            if (!usedEdges.has(key) && (a === cur || b === cur)) {
+              const targetNode = a === cur ? b : a;
+              ctx.beginPath();
+              ctx.moveTo(level.nodes[cur][0], level.nodes[cur][1]);
+              ctx.lineTo(level.nodes[targetNode][0], level.nodes[targetNode][1]);
+              ctx.lineWidth = 6;
+              ctx.strokeStyle = "#f59e0b"; // オレンジ破線
+              ctx.setLineDash([8, 8]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+            }
+          });
+        }
+
+        // 3. ドラッグ中のゴム状ラバーバンド線の描画
+        if (dragging && cur !== null && currentPointerPos) {
+          ctx.beginPath();
+          ctx.moveTo(level.nodes[cur][0], level.nodes[cur][1]);
+          ctx.lineTo(currentPointerPos.x, currentPointerPos.y);
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = "#60a5fa";
+          ctx.setLineDash([6, 6]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // 4. 各頂点の描画
+        level.nodes.forEach((p, idx) => {
+          const isCurrent = idx === cur;
+          const isConnected = pathNodes.includes(idx);
+
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], isCurrent ? 16 : 12, 0, Math.PI * 2);
+
+          if (isCurrent) {
+            ctx.fillStyle = "#10b981"; // 現在の頂点（緑・発光）
+            ctx.shadowColor = "#10b981";
+            ctx.shadowBlur = 12;
+          } else if (isConnected) {
+            ctx.fillStyle = "#3b82f6"; // 通過済みの頂点（青）
+            ctx.shadowBlur = 0;
+          } else {
+            ctx.fillStyle = "#1e293b"; // 未通過の頂点（暗い色）
+            ctx.shadowBlur = 0;
+          }
+          ctx.fill();
+
+          ctx.lineWidth = isCurrent ? 4 : 3;
+          ctx.strokeStyle = isCurrent ? "#ecfdf5" : (isConnected ? "#bfdbfe" : "#64748b");
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // 頂点中心の白丸
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+        });
+
+        // 5. パーティクルの更新と描画
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life;
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        });
+
+        // パーティクルが残っている場合は連続描画
+        if (particles.length > 0) {
+          updateParticles();
+          requestAnimationFrame(draw);
+        }
+      }
+
+      // UIメッセージおよびステータス表示の更新
+      function updateStatus(message = null, type = "normal") {
+        const level = LEVELS[currentLevelIdx];
+        edgeCounter.textContent = `${usedEdges.size} / ${level.edges.length}`;
+        levelTag.textContent = `Lv.${level.id}`;
+
+        if (message) {
+          msgEl.textContent = message;
+          if (type === "error") {
+            msgBox.className = "text-xs sm:text-sm text-rose-300 bg-rose-950/60 rounded-xl px-3 py-2 flex items-center gap-2 border border-rose-800/80 transition-colors";
+          } else if (type === "success") {
+            msgBox.className = "text-xs sm:text-sm text-emerald-300 bg-emerald-950/60 rounded-xl px-3 py-2 flex items-center gap-2 border border-emerald-800/80 transition-colors";
+          } else {
+            msgBox.className = "text-xs sm:text-sm text-slate-300 bg-slate-900/50 rounded-xl px-3 py-2 flex items-center gap-2 border border-slate-800 transition-colors";
+          }
+        }
+      }
+
+      // タイマー開始
+      function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+          const s = String(elapsed % 60).padStart(2, '0');
+          timerText.textContent = `${m}:${s}`;
+        }, 1000);
+      }
+
+      // タイマー停止
+      function stopTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+      }
+
+      // ミス回数からスター（星）を評価
+      function calculateStars() {
+        if (mistakes === 0) return 3;
+        if (mistakes <= 2) return 2;
+        return 1;
+      }
+
+      // 星評価UIの更新
+      function updateStarDisplay(stars) {
+        const starIcons = starContainer.querySelectorAll("i");
+        starIcons.forEach((icon, i) => {
+          if (i < stars) {
+            icon.className = "fa-solid fa-star text-amber-400";
+          } else {
+            icon.className = "fa-regular fa-star text-slate-600";
+          }
+        });
+      }
+
+      // ==========================================
+      // ゲームルール＆接続判定ロジック
+      // ==========================================
+      function tryConnectNode(targetIdx) {
+        const level = LEVELS[currentLevelIdx];
+
+        // 1. スタート地点の選択
+        if (cur === null) {
+          cur = targetIdx;
+          pathNodes = [cur];
+          if (!startTime) startTimer();
+          sound.step();
+          updateStatus("指またはタップで次の点へ線をつないでください。");
+          draw();
+          return;
+        }
+
+        if (cur === targetIdx) return; // 同じ点への接続は無視
+
+        const eKey = getEdgeKey(cur, targetIdx);
+
+        // 2. 存在しない線（直接つながっていない点）の場合
+        if (!hasEdge(level, cur, targetIdx)) {
+          mistakes++;
+          sound.error();
+          updateStatus("そこに直接つながる線はありません！", "error");
+          updateStarDisplay(calculateStars());
+          return;
+        }
+
+        // 3. 既に通過した線を選択した場合
+        if (usedEdges.has(eKey)) {
+          mistakes++;
+          sound.error();
+          updateStatus("その線はすでに通っています！", "error");
+          updateStarDisplay(calculateStars());
+          return;
+        }
+
+        // 4. 正しい移動
+        usedEdges.add(eKey);
+        cur = targetIdx;
+        pathNodes.push(cur);
+        sound.connect();
+
+        const nodePos = level.nodes[cur];
+        addParticles(nodePos[0], nodePos[1], "#60a5fa", 12);
+
+        // クリア判定
+        if (usedEdges.size === level.edges.length) {
+          stopTimer();
+          sound.win();
+          const stars = calculateStars();
+          saveProgress(level.id, stars);
+
+          // クリア演出パーティクル
+          addParticles(nodePos[0], nodePos[1], "#f59e0b", 30);
+          updateStatus("ステージクリア！おめでとうございます！🎉", "success");
+          
+          setTimeout(() => {
+            showClearModal(stars);
+            // クリア完了後のリダイレクト処理
+            window.location.href = "http://ka2u5hi.github.io/my-web-app/test.html?clear_spot=6";
+          }, 600);
+        } else {
+          updateStatus("ナイス！次の点へ進みましょう。", "success");
+        }
+        draw();
+      }
+
+      // ==========================================
+      // ポインターイベントハンドラー (タッチ/マウス対応)
+      // ==========================================
+      function handlePointerDown(ev) {
+        ev.preventDefault();
+        const p = getPointerPos(ev);
+        pointerId = ev.pointerId;
+        currentPointerPos = p;
+        dragging = true;
+
+        try { canvas.setPointerCapture(pointerId); } catch(_) {}
+
+        const target = findNodeNear(p);
+        if (target >= 0) {
+          tryConnectNode(target);
+        }
+      }
+
+      function handlePointerMove(ev) {
+        if (!dragging || ev.pointerId !== pointerId) return;
+        ev.preventDefault();
+        const p = getPointerPos(ev);
+        currentPointerPos = p;
+
+        if (cur !== null) {
+          const target = findNodeNear(p);
+          if (target >= 0 && target !== cur) {
+            tryConnectNode(target);
+          }
+        }
+        draw();
+      }
+
+      function handlePointerUp(ev) {
+        if (ev.pointerId !== pointerId) return;
+        dragging = false;
+        pointerId = null;
+        currentPointerPos = null;
+        draw();
+      }
+
+      // ==========================================
+      // アクションボタン処理 (戻る・リセット・レベル変更等)
+      // ==========================================
+      // 1手戻す
+      function undo() {
+        if (pathNodes.length <= 1) return;
+        sound.undo();
+        const lastNode = pathNodes.pop();
+        const prevNode = pathNodes[pathNodes.length - 1];
+        const eKey = getEdgeKey(lastNode, prevNode);
+        usedEdges.delete(eKey);
+        cur = prevNode;
+        updateStatus("1手戻しました。");
+        draw();
+      }
+
+      // ステージのやり直し
+      function resetLevel() {
+        sound.undo();
+        usedEdges.clear();
+        pathNodes = [];
+        cur = null;
+        dragging = false;
+        mistakes = 0;
+        showHint = false;
+        stopTimer();
+        timerText.textContent = "00:00";
+        startTime = null;
+        updateStarDisplay(3);
+        updateStatus("好きな点を選んで一筆書きを開始してください");
+        draw();
+      }
+
+      // 指定ステージの読み込み
+      function loadLevel(idx) {
+        currentLevelIdx = idx;
+        resetLevel();
+        renderLevelGrid();
+      }
+
+      // クリアモーダルの表示
+      function showClearModal(stars) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+
+        document.getElementById("clearLevelTitle").textContent = `${LEVELS[currentLevelIdx].name} (Lv.${LEVELS[currentLevelIdx].id})`;
+        document.getElementById("clearTime").textContent = `${m}:${s}`;
+        document.getElementById("clearMistakes").textContent = `${mistakes}回`;
+
+        const clearStarsContainer = document.getElementById("clearStars");
+        clearStarsContainer.innerHTML = "";
+        for (let i = 0; i < 3; i++) {
+          const star = document.createElement("i");
+          star.className = i < stars ? "fa-solid fa-star text-amber-400" : "fa-regular fa-star text-slate-600";
+          clearStarsContainer.appendChild(star);
+        }
+
+        clearModal.classList.remove("hidden");
+        setTimeout(() => clearModal.classList.add("opacity-100"), 10);
+      }
+
+      // クリアモーダルを隠す
+      function hideClearModal() {
+        clearModal.classList.remove("opacity-100");
+        setTimeout(() => clearModal.classList.add("hidden"), 200);
+      }
+
+      // ステージ選択グリッドの描画
+      function renderLevelGrid() {
+        levelGrid.innerHTML = "";
+        let totalStars = 0;
+
+        LEVELS.forEach((lvl, idx) => {
+          const prog = userProgress[lvl.id];
+          const isUnlocked = idx === 0 || userProgress[LEVELS[idx - 1].id]?.completed;
+          const isCurrent = idx === currentLevelIdx;
+
+          const btn = document.createElement("button");
+          btn.className = `p-3 rounded-2xl border flex flex-col items-center justify-between gap-1 transition-all ${
+            isCurrent
+              ? "bg-indigo-600/30 border-indigo-500 text-white shadow-lg"
+              : isUnlocked
+              ? "bg-slate-700/60 hover:bg-slate-700 border-slate-600 text-slate-200"
+              : "bg-slate-900/40 border-slate-800 text-slate-600 cursor-not-allowed"
+          }`;
+
+          if (prog?.stars) totalStars += prog.stars;
+
+          btn.innerHTML = `
+            <span class="text-xs font-bold text-slate-400">Lv.${lvl.id}</span>
+            <span class="text-sm font-extrabold truncate w-full text-center">${isUnlocked ? lvl.name : '<i class="fa-solid fa-lock"></i>'}</span>
+            <div class="flex gap-0.5 text-[10px] ${isUnlocked ? 'text-amber-400' : 'text-slate-700'}">
+              ${[1, 2, 3].map(st => `<i class="${prog?.stars >= st ? 'fa-solid' : 'fa-regular'} fa-star"></i>`).join('')}
+            </div>
+          `;
+
+          if (isUnlocked) {
+            btn.addEventListener("click", () => {
+              loadLevel(idx);
+              toggleLevelModal(false);
+            });
+          }
+
+          levelGrid.appendChild(btn);
+        });
+
+        document.getElementById("totalStars").textContent = totalStars;
+      }
+
+      // ステージ選択モーダルの開閉
+      function toggleLevelModal(show) {
+        if (show) {
+          renderLevelGrid();
+          levelModal.classList.remove("hidden");
+          setTimeout(() => levelModal.classList.add("opacity-100"), 10);
+        } else {
+          levelModal.classList.remove("opacity-100");
+          setTimeout(() => levelModal.classList.add("hidden"), 200);
+        }
+      }
+
+      // 画面サイズ変更時のキャンバスリサイズ処理 (High-DPI / レティナディスプレイ対応)
+      function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      // ==========================================
+      // イベントリスナーの登録
+      // ==========================================
+      canvas.addEventListener("pointerdown", handlePointerDown);
+      canvas.addEventListener("pointermove", handlePointerMove);
+      canvas.addEventListener("pointerup", handlePointerUp);
+      canvas.addEventListener("pointercancel", handlePointerUp);
+
+      document.getElementById("undoBtn").addEventListener("click", undo);
+      document.getElementById("resetBtn").addEventListener("click", resetLevel);
+      document.getElementById("hintBtn").addEventListener("click", () => {
+        showHint = !showHint;
+        sound.step();
+        draw();
+      });
+
+      document.getElementById("soundToggleBtn").addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        sound.enabled = soundEnabled;
+        const soundIcon = document.getElementById("soundIcon");
+        const btnText = document.querySelector("#soundToggleBtn span");
+        soundIcon.className = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+        btnText.textContent = `音: ${soundEnabled ? 'ON' : 'OFF'}`;
+      });
+
+      document.getElementById("levelSelectBtn").addEventListener("click", () => toggleLevelModal(true));
+      document.getElementById("closeModalBtn").addEventListener("click", () => toggleLevelModal(false));
+
+      document.getElementById("retryLevelBtn").addEventListener("click", () => {
+        hideClearModal();
+        resetLevel();
+      });
+
+      document.getElementById("nextLevelBtn").addEventListener("click", () => {
+        hideClearModal();
+        if (currentLevelIdx < LEVELS.length - 1) {
+          loadLevel(currentLevelIdx + 1);
+        } else {
+          toggleLevelModal(true);
+        }
+      });
+
+      document.getElementById("clearDataBtn").addEventListener("click", () => {
+        // ※ 画面内カスタムダイアログの代わりに進行確認メッセージでリセットを実行
+        localStorage.removeItem("line_trace_progress");
+        userProgress = {};
+        loadLevel(0);
+        renderLevelGrid();
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+
+      // 初期化実行
+      window.onload = () => {
+        resizeCanvas();
+        loadLevel(0);
+      };
+    })();
+  </script>
+</body>
+</html>

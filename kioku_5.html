@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶力ゲーム</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons (アイコン表示用) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (ピクセルフォント・ドットフォント) -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=DotGothic16&display=swap" rel="stylesheet">
+    
+    <style>
+        /* -------------------------------------------------------------
+           全体・フォント・基本スタイル設定
+        ------------------------------------------------------------- */
+        body {
+            font-family: 'DotGothic16', monospace;
+            background-color: #0c0910;
+            color: #f3e8ff;
+            touch-action: manipulation;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        .font-vt323 {
+            font-family: 'VT323', monospace;
+        }
+
+        /* -------------------------------------------------------------
+           ゲーム筐体（本体外枠）のレトロフレームデザイン
+        ------------------------------------------------------------- */
+        .device-chassis {
+            background: linear-gradient(145deg, #2a2233 0%, #15101a 100%);
+            border: 4px solid #483957;
+            border-bottom-color: #110d16;
+            border-right-color: #110d16;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.8),
+                inset 0 2px 3px rgba(255, 255, 255, 0.15),
+                inset 0 -4px 8px rgba(0, 0, 0, 0.6);
+        }
+
+        /* -------------------------------------------------------------
+           LCD液晶ディスプレイ画面のデザイン
+        ------------------------------------------------------------- */
+        .lcd-screen {
+            background: #111a13;
+            border: 4px solid #1a1224;
+            box-shadow: 
+                inset 0 4px 10px rgba(0, 0, 0, 0.9),
+                0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        .lcd-screen::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 40%);
+            pointer-events: none;
+        }
+
+        /* -------------------------------------------------------------
+           ゲームパッド（9つのボタン）の基本・押下アニメーション
+        ------------------------------------------------------------- */
+        .pad-btn {
+            transition: all 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            outline: none;
+        }
+
+        .pad-btn:active {
+            transform: translateY(3px) scale(0.96) !important;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8) !important;
+        }
+
+        /* 各カラーパッドの個別スタイル（通常時 ＆ 発光時[active]） */
+        .pad-0 { background: #166534; border: 3px solid #4ade80; box-shadow: 0 6px 0 #052e16, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-0.active { background: #22c55e; box-shadow: 0 2px 0 #052e16, 0 0 30px #22c55e; filter: brightness(1.3); }
+
+        .pad-1 { background: #991b1b; border: 3px solid #fca5a5; box-shadow: 0 6px 0 #450a0a, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-1.active { background: #ef4444; box-shadow: 0 2px 0 #450a0a, 0 0 30px #ef4444; filter: brightness(1.3); }
+
+        .pad-2 { background: #854d0e; border: 3px solid #fde047; box-shadow: 0 6px 0 #451a03, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-2.active { background: #eab308; box-shadow: 0 2px 0 #451a03, 0 0 30px #eab308; filter: brightness(1.3); }
+
+        .pad-3 { background: #1e40af; border: 3px solid #93c5fd; box-shadow: 0 6px 0 #172554, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-3.active { background: #3b82f6; box-shadow: 0 2px 0 #172554, 0 0 30px #3b82f6; filter: brightness(1.3); }
+
+        .pad-4 { background: #5b21b6; border: 3px solid #ddd6fe; box-shadow: 0 6px 0 #2e1065, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-4.active { background: #a855f7; box-shadow: 0 2px 0 #2e1065, 0 0 30px #a855f7; filter: brightness(1.3); }
+
+        .pad-5 { background: #155e75; border: 3px solid #a5f3fc; box-shadow: 0 6px 0 #083344, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-5.active { background: #06b6d4; box-shadow: 0 2px 0 #083344, 0 0 30px #06b6d4; filter: brightness(1.3); }
+
+        .pad-6 { background: #9d174d; border: 3px solid #fbcfe8; box-shadow: 0 6px 0 #500724, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-6.active { background: #ec4899; box-shadow: 0 2px 0 #500724, 0 0 30px #ec4899; filter: brightness(1.3); }
+
+        .pad-7 { background: #9a3412; border: 3px solid #fed7aa; box-shadow: 0 6px 0 #431407, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-7.active { background: #f97316; box-shadow: 0 2px 0 #431407, 0 0 30px #f97316; filter: brightness(1.3); }
+
+        .pad-8 { background: #115e59; border: 3px solid #99f6e4; box-shadow: 0 6px 0 #042f2e, 0 8px 10px rgba(0,0,0,0.5); }
+        .pad-8.active { background: #14b8a6; box-shadow: 0 2px 0 #042f2e, 0 0 30px #14b8a6; filter: brightness(1.3); }
+
+        /* -------------------------------------------------------------
+           ミス時の画面シェイクアニメーション
+        ------------------------------------------------------------- */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        /* -------------------------------------------------------------
+           物理ボタン風デザイン
+        ------------------------------------------------------------- */
+        .push-btn-physical {
+            background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+            border: 2px solid #fef08a;
+            border-bottom: 4px solid #451a03;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
+        }
+        .push-btn-physical:active:not(:disabled) {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+        }
+
+        /* -------------------------------------------------------------
+           スピーカーグリル・LEDインジケーター等
+        ------------------------------------------------------------- */
+        .speaker-grille {
+            background: repeating-linear-gradient(
+                90deg,
+                #120d18,
+                #120d18 3px,
+                #281e33 3px,
+                #281e33 6px
+            );
+            border-radius: 4px;
+            border: 1px solid #000;
+        }
+
+        .led-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2a1f1d;
+            border: 1px solid #100a08;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .led-indicator.on {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e, inset 0 1px 1px #86efac;
+        }
+
+        /* タイムバーのアニメーション推移 */
+        #timer-bar {
+            transition: width 0.1s linear, background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-3 sm:p-6 selection:bg-amber-500 selection:text-black">
+
+    <!-- ゲーム機本体（コンソール筐体） -->
+    <div class="w-full max-w-xl device-chassis rounded-3xl p-4 sm:p-6 flex flex-col gap-4 relative">
+        
+        <!-- 筐体の四隅のネジ装飾 -->
+        <div class="absolute top-3 left-3 w-3 h-3 rounded-full bg-stone-700 border border-stone-900 flex items-center justify-center shadow-inner"><div class="w-2 h-0.5 bg-stone-900 rotate-45"></div></div>
+        <div class="absolute top-3 right-3 w-3 h-3 rounded-full bg-stone-700 border border-stone-900 flex items-center justify-center shadow-inner"><div class="w-2 h-0.5 bg-stone-900 -rotate-12"></div></div>
+        <div class="absolute bottom-3 left-3 w-3 h-3 rounded-full bg-stone-700 border border-stone-900 flex items-center justify-center shadow-inner"><div class="w-2 h-0.5 bg-stone-900 rotate-90"></div></div>
+        <div class="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-stone-700 border border-stone-900 flex items-center justify-center shadow-inner"><div class="w-2 h-0.5 bg-stone-900"></div></div>
+
+        <!-- ヘッダーパネル（スピーカー・タイトル・音量切り替えボタン） -->
+        <header class="w-full flex items-center justify-between px-2 pt-1">
+            <div class="flex items-center gap-3">
+                <div class="speaker-grille w-12 h-8 shadow-inner"></div>
+                <div>
+                    <h1 class="font-pixel text-base sm:text-lg text-amber-400 tracking-wider drop-shadow-md">
+                        記憶力ゲーム
+                    </h1>
+                    <span class="text-[10px] text-stone-400 block -mt-1 font-mono tracking-widest">MODEL MEM-9000</span>
+                </div>
+            </div>
+
+            <!-- サウンドON/OFF切替スイッチ -->
+            <div class="flex items-center gap-2 bg-stone-900/80 p-2 rounded-xl border border-stone-700/60 shadow-inner">
+                <div id="power-led" class="led-indicator on"></div>
+                <button id="sound-toggle-btn" class="p-1.5 rounded-md bg-stone-800 text-amber-300 hover:text-white transition-all flex items-center justify-center w-8 h-8 border border-stone-600 active:translate-y-0.5">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 内蔵LCDディスプレイモジュール -->
+        <div class="w-full lcd-screen p-3 rounded-xl flex flex-col gap-2.5">
+            <!-- ラウンド・ターゲット音数・タイマー表示 -->
+            <div class="flex items-center justify-around text-emerald-400">
+                <div class="text-center">
+                    <span class="text-[10px] text-emerald-600 block mb-0.5 font-bold tracking-widest">ROUND</span>
+                    <span id="round-display" class="font-vt323 text-3xl sm:text-4xl leading-none text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">0/3</span>
+                </div>
+                
+                <div class="h-8 w-0.5 bg-emerald-950"></div>
+
+                <div class="text-center">
+                    <span class="text-[10px] text-emerald-600 block mb-0.5 font-bold tracking-widest">TARGET</span>
+                    <span id="target-count-display" class="font-vt323 text-xl sm:text-2xl leading-none text-emerald-300">3音 → 5音 → 7音</span>
+                </div>
+
+                <div class="h-8 w-0.5 bg-emerald-950"></div>
+
+                <div class="text-center">
+                    <span class="text-[10px] text-emerald-600 block mb-0.5 font-bold tracking-widest">TIMER</span>
+                    <span id="timer-text" class="font-vt323 text-3xl sm:text-4xl leading-none text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">--s</span>
+                </div>
+            </div>
+
+            <!-- タイマーゲージ（プログレスバー） -->
+            <div class="w-full bg-emerald-950/80 rounded-sm h-2.5 p-0.5 border border-emerald-900/80">
+                <div id="timer-bar" class="bg-emerald-400 h-full w-0 rounded-xs shadow-[0_0_8px_#34d399]"></div>
+            </div>
+
+            <!-- ステータスメッセージ表示エリア -->
+            <div id="status-message" class="text-center text-xs sm:text-sm font-bold text-emerald-300 h-5 font-mono tracking-tight">
+                「START」を押してゲーム開始！
+            </div>
+        </div>
+
+        <!-- ゲームボードデッキ（9色パッド grid） -->
+        <div id="game-board-wrapper" class="relative flex items-center justify-center p-3 bg-stone-900/90 border-2 border-stone-800 rounded-2xl shadow-inner">
+            <!-- 9個のパッドがJSにより動的に生成される領域 -->
+            <div id="game-board" class="grid grid-cols-3 gap-3 sm:gap-4 w-72 h-72 sm:w-84 sm:h-84">
+            </div>
+
+            <!-- 中央のアーケードSTARTボタン -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <button id="start-btn" class="pointer-events-auto font-pixel text-xs tracking-widest bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-bold rounded-full w-20 h-20 sm:w-24 sm:h-24 border-4 border-amber-200 shadow-[0_8px_0_#78350f,0_15px_20px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center transition-all active:translate-y-1 active:shadow-[0_4px_0_#78350f] cursor-pointer z-20">
+                    <span>START</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- サブ操作ボタン部（もう一度再生・ルール） -->
+        <div class="w-full flex items-center justify-between px-1">
+            <button id="replay-btn" disabled class="px-3 py-2 push-btn-physical text-black rounded-lg text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>もう一度再生 (各R 1回)</span>
+            </button>
+
+            <!-- ルール説明モーダル表示ボタン -->
+            <button id="rules-btn" class="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg border border-stone-600 text-xs flex items-center gap-1.5 active:translate-y-0.5 transition-all">
+                <i class="fa-solid fa-circle-question text-amber-400"></i>
+                <span>ルール</span>
+            </button>
+        </div>
+
+        <footer class="w-full text-center text-xs text-stone-500 font-vt323 tracking-widest pt-1 border-t border-stone-800/80">
+            2R 仰星祭
+        </footer>
+    </div>
+
+    <!-- 結果・ルール用モーダルダイアログ -->
+    <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 opacity-0 pointer-events-none transition-all duration-200">
+        <div class="device-chassis w-full max-w-md rounded-2xl p-6 shadow-2xl transform scale-95 transition-transform duration-200" id="modal-content">
+            <h2 id="modal-title" class="font-pixel text-base text-amber-400 mb-2 text-center drop-shadow-md">GAME OVER</h2>
+            <div id="modal-body" class="text-sm my-4 space-y-3">
+                <!-- 動的にメッセージが挿入されます -->
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="modal-close-btn" class="w-full py-3 push-btn-physical font-pixel text-xs text-black font-bold rounded-lg transition-all">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =============================================================
+           1. ゲームの進行状態管理 (State)
+        ============================================================= */
+        const state = {
+            sequence: [],            // 正解の音パターン配列
+            userStep: 0,            // プレイヤーが現在入力している段階
+            currentRound: 0,        // 現在のラウンド (1〜3)
+            maxRounds: 3,           // 最大ラウンド数
+            isPlaying: false,       // プレイ中フラグ
+            isShowingSequence: false,// お手本再生中フラグ（入力不可状態）
+            soundMuted: false,      // ミュート状態
+            padCount: 9,            // ボタンの数
+            initialLength: 3,       // 第1ラウンドの音数
+            incrementStep: 2,       // ラウンドごとの増加音数 (3 -> 5 -> 7)
+            // タイマー & リプレイ拡張
+            timeLeft: 0,            // 残り時間(秒)
+            maxTime: 0,             // 制限時間上限(秒)
+            timerInterval: null,    // タイマー用Interval保持
+            replayAvailable: true   // そのラウンドでリプレイ可能か
+        };
+
+        /* =============================================================
+           2. オーディオ（Web Audio API）設定
+        ============================================================= */
+        let audioCtx = null;
+
+        // 9つのボタンに対応する周波数（C4〜D5 の音階）
+        const frequencies = [
+            261.63, // C4 (ド) - 緑
+            293.66, // D4 (レ) - 赤
+            329.63, // E4 (ミ) - 黄
+            349.23, // F4 (ファ) - 青
+            392.00, // G4 (ソ) - 紫
+            440.00, // A4 (ラ) - 水色
+            493.88, // B4 (シ) - ピンク
+            523.25, // C5 (高いド) - オレンジ
+            587.33  // D5 (高いレ) - エメラルド
+        ];
+
+        /* =============================================================
+           3. DOM要素の取得
+        ============================================================= */
+        const gameBoard = document.getElementById('game-board');
+        const gameBoardWrapper = document.getElementById('game-board-wrapper');
+        const startBtn = document.getElementById('start-btn');
+        const roundDisplay = document.getElementById('round-display');
+        const targetCountDisplay = document.getElementById('target-count-display');
+        const statusMessage = document.getElementById('status-message');
+        const soundToggleBtn = document.getElementById('sound-toggle-btn');
+        const soundIcon = document.getElementById('sound-icon');
+        const rulesBtn = document.getElementById('rules-btn');
+        const replayBtn = document.getElementById('replay-btn');
+        const timerText = document.getElementById('timer-text');
+        const timerBar = document.getElementById('timer-bar');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        /* =============================================================
+           4. オーディオ初期化 ＆ 音声再生処理
+        ============================================================= */
+        // ユーザー操作時に AudioContext を有効化
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // UI効果音（クリック音・開始音・成功音・クリア音）の生成
+        function playUiSound(type) {
+            if (state.soundMuted) return;
+            initAudio();
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    // ボタンクリック音
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'start') {
+                    // ゲーム開始音
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+
+                    osc.type = 'sine';
+                    osc2.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+                    osc2.frequency.setValueAtTime(554.37, now + 0.08);
+                    osc2.frequency.exponentialRampToValueAtTime(1108.73, now + 0.33);
+
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    gain2.gain.setValueAtTime(0.2, now + 0.08);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    osc2.start(now + 0.08);
+                    osc2.stop(now + 0.38);
+                } else if (type === 'success') {
+                    // ラウンドクリア音
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                        noteGain.gain.setValueAtTime(0.15, now + idx * 0.07);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.15);
+
+                        noteOsc.start(now + idx * 0.07);
+                        noteOsc.stop(now + idx * 0.07 + 0.15);
+                    });
+                } else if (type === 'gameClear') {
+                    // 全ラウンドクリアファンファーレ
+                    const clearNotes = [523.25, 659.25, 783.99, 987.77, 1046.50];
+                    clearNotes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+
+                        noteOsc.type = 'triangle';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.1);
+                        noteGain.gain.setValueAtTime(0.2, now + idx * 0.1);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.4);
+
+                        noteOsc.start(now + idx * 0.1);
+                        noteOsc.stop(now + idx * 0.1 + 0.4);
+                    });
+                }
+            } catch (e) {
+                console.error("UI Audio error:", e);
+            }
+        }
+
+        // 指定パッドの単音（またはエラー音）を再生
+        function playTone(padIndex, duration = 280, isError = false) {
+            if (state.soundMuted) return;
+            initAudio();
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (isError) {
+                    // ミス時のブザー音
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + duration / 1000);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
+                } else {
+                    // 通常パッドの音
+                    osc.type = 'sine';
+                    const freq = frequencies[padIndex] || 440;
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration / 1000);
+                }
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration / 1000);
+            } catch (e) {
+                console.error("Audio playback error:", e);
+            }
+        }
+
+        /* =============================================================
+           5. 画面描画 ＆ パッド発光制御
+        ============================================================= */
+        // ゲームボード（9個のボタン）のHTML生成
+        function renderBoard() {
+            gameBoard.innerHTML = '';
+            for (let i = 0; i < state.padCount; i++) {
+                const pad = document.createElement('button');
+                pad.dataset.pad = i;
+                pad.className = `pad-btn pad-${i} rounded-xl sm:rounded-2xl cursor-pointer outline-none focus:outline-none transition-all`;
+                
+                pad.addEventListener('pointerdown', (e) => handlePadClick(i, e));
+                gameBoard.appendChild(pad);
+            }
+        }
+
+        // 指定したパッドを点滅＆音を鳴らす
+        function activatePad(padIndex, duration = 300) {
+            const pad = gameBoard.querySelector(`[data-pad="${padIndex}"]`);
+            if (!pad) return;
+
+            pad.classList.add('active');
+            playTone(padIndex, duration);
+
+            setTimeout(() => {
+                pad.classList.remove('active');
+            }, duration - 50);
+        }
+
+        /* =============================================================
+           6. ゲーム進行ロジック
+        ============================================================= */
+        // ゲーム開始
+        function startGame() {
+            initAudio();
+            playUiSound('start');
+            state.sequence = [];
+            state.currentRound = 0;
+            state.userStep = 0;
+            state.isPlaying = true;
+            stopTimer();
+            
+            // STARTボタンを非表示化
+            startBtn.classList.add('scale-0', 'opacity-0');
+            setTimeout(() => {
+                startBtn.style.display = 'none';
+            }, 200);
+
+            setStatusMessage("集中して順番を覚えよう！", "text-cyan-300");
+            nextRound();
+        }
+
+        // 次のラウンドに進む処理
+        function nextRound() {
+            state.currentRound++;
+            state.userStep = 0;
+            state.isShowingSequence = true;
+            state.replayAvailable = true; // 各ラウンド開始時にリプレイ権をリセット
+            updateReplayBtnState();
+            stopTimer();
+            
+            // 正解シーケンスの追加 (1R: 3音, 2R: 5音, 3R: 7音)
+            const addCount = (state.currentRound === 1) ? state.initialLength : state.incrementStep;
+            for (let i = 0; i < addCount; i++) {
+                const nextPad = Math.floor(Math.random() * state.padCount);
+                state.sequence.push(nextPad);
+            }
+
+            roundDisplay.textContent = `${state.currentRound}/${state.maxRounds}`;
+            targetCountDisplay.textContent = `${state.sequence.length} 音`;
+
+            setStatusMessage(`順番を再生中... (第${state.currentRound}ラウンド: 全${state.sequence.length}音)`, "text-amber-300");
+
+            // 少し待ってからお手本を再生
+            setTimeout(() => {
+                playSequence();
+            }, 700);
+        }
+
+        // 正解パターン（お手本）の自動再生
+        function playSequence() {
+            stopTimer();
+            state.isShowingSequence = true;
+            updateReplayBtnState();
+
+            let i = 0;
+            const currentSpeed = 800; // 点滅速度 (800ms間隔)
+
+            const interval = setInterval(() => {
+                if (i < state.sequence.length) {
+                    activatePad(state.sequence[i], currentSpeed - 150);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    state.isShowingSequence = false;
+                    updateReplayBtnState();
+                    setStatusMessage(`あなたの番です！ ${state.sequence.length}音の順番通りに押してください`, "text-emerald-400 font-bold");
+                    
+                    // プレイヤーの入力用タイマー開始
+                    startTimer();
+                }
+            }, currentSpeed);
+        }
+
+        // 「もう一度再生」ボタン押下時の処理
+        function replaySequence() {
+            if (!state.isPlaying || state.isShowingSequence || !state.replayAvailable) return;
+
+            playUiSound('click');
+            state.replayAvailable = false; // そのラウンドのリプレイ権を消費
+            state.userStep = 0; // 入力進行状況をリセット
+            updateReplayBtnState();
+
+            setStatusMessage(`もう一度順番を再生します！`, "text-purple-300");
+            playSequence();
+        }
+
+        // リプレイボタンの有効/無効状態を更新
+        function updateReplayBtnState() {
+            if (state.isPlaying && !state.isShowingSequence && state.replayAvailable) {
+                replayBtn.disabled = false;
+            } else {
+                replayBtn.disabled = true;
+            }
+        }
+
+        /* =============================================================
+           7. タイマー制御機能
+        ============================================================= */
+        function startTimer() {
+            stopTimer();
+            // 制限時間計算 (1音あたり2.5秒 + 5秒の猶予)
+            state.maxTime = state.sequence.length * 2.5 + 5;
+            state.timeLeft = state.maxTime;
+
+            updateTimerUI();
+
+            state.timerInterval = setInterval(() => {
+                state.timeLeft -= 0.1;
+                if (state.timeLeft <= 0) {
+                    state.timeLeft = 0;
+                    updateTimerUI();
+                    stopTimer();
+                    handleGameOver('timeUp');
+                } else {
+                    updateTimerUI();
+                }
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+            }
+        }
+
+        // タイマー表示（数値およびゲージ）の更新
+        function updateTimerUI() {
+            if (!state.isPlaying) {
+                timerText.textContent = "--s";
+                timerBar.style.width = "0%";
+                timerBar.className = "bg-emerald-400 h-full w-0 rounded-xs";
+                return;
+            }
+
+            const pct = Math.max(0, Math.min(100, (state.timeLeft / state.maxTime) * 100));
+            timerText.textContent = `${Math.ceil(state.timeLeft)}s`;
+            timerBar.style.width = `${pct}%`;
+
+            // 残り時間に応じたカラー変更
+            if (pct < 25) {
+                timerBar.className = "bg-red-500 h-full rounded-xs";
+                timerText.className = "font-vt323 text-3xl sm:text-4xl text-red-500 animate-pulse";
+            } else if (pct < 50) {
+                timerBar.className = "bg-yellow-400 h-full rounded-xs";
+                timerText.className = "font-vt323 text-3xl sm:text-4xl text-yellow-400";
+            } else {
+                timerBar.className = "bg-emerald-400 h-full rounded-xs";
+                timerText.className = "font-vt323 text-3xl sm:text-4xl text-emerald-400";
+            }
+        }
+
+        /* =============================================================
+           8. ユーザー入力処理
+        ============================================================= */
+        function handlePadClick(padIndex, event) {
+            if (event) event.preventDefault();
+            if (!state.isPlaying || state.isShowingSequence) return;
+
+            // 押したボタンを即座に光らせる
+            activatePad(padIndex, 250);
+
+            // 正解チェック
+            if (padIndex === state.sequence[state.userStep]) {
+                // 正しいボタンを押した場合
+                state.userStep++;
+
+                // 現在のラウンドの音を最後まで入力し終えた場合
+                if (state.userStep === state.sequence.length) {
+                    stopTimer();
+                    state.isShowingSequence = true; // 入力をロック
+                    updateReplayBtnState();
+
+                    // 全3ラウンドをクリアしたか確認
+                    if (state.currentRound === state.maxRounds) {
+                        handleGameClear();
+                    } else {
+                        // ラウンドクリア時、次のラウンドへ
+                        setStatusMessage(`ラウンド ${state.currentRound} クリア！次へ...`, "text-green-400 font-bold");
+                        
+                        setTimeout(() => {
+                            playUiSound('success');
+                        }, 200);
+
+                        setTimeout(() => {
+                            nextRound();
+                        }, 1200);
+                    }
+                }
+            } else {
+                // 間違えたボタンを押した場合 -> ゲームオーバー
+                stopTimer();
+                handleGameOver('wrongKey');
+            }
+        }
+
+        /* =============================================================
+           9. 勝敗判定 ＆ モーダル表示
+        ============================================================= */
+        // ゲームクリア処理
+        function handleGameClear() {
+            stopTimer();
+            state.isPlaying = false;
+            state.isShowingSequence = false;
+            updateReplayBtnState();
+            updateTimerUI();
+
+            setStatusMessage("全3ラウンド完勝！ゲームクリア！", "text-emerald-400 font-bold");
+
+            setTimeout(() => {
+                playUiSound('gameClear');
+            }, 200);
+
+            // クリア判定の最後に指定されたURLへリダイレクト
+            setTimeout(() => {
+                window.location.href = "http://ka2u5hi.github.io/my-web-app/test.html?clear_spot=５";
+            }, 1000);
+        }
+
+        // ゲームオーバー処理（間違えた場合・タイムアップ時）
+        function handleGameOver(reason = 'wrongKey') {
+            stopTimer();
+            playTone(0, 500, true); // エラー音再生
+            state.isPlaying = false;
+            state.isShowingSequence = false;
+            updateReplayBtnState();
+
+            // 画面を横揺れさせるエフェクト
+            gameBoardWrapper.classList.add('shake');
+            setTimeout(() => gameBoardWrapper.classList.remove('shake'), 300);
+
+            const isTimeUp = reason === 'timeUp';
+            const failTitle = isTimeUp ? "TIME UP!" : "GAME OVER";
+            const failMessage = isTimeUp 
+                ? "制限時間切れです！時間内に音を押し切れませんでした。" 
+                : "光った順番を間違えてしまいました！";
+
+            setStatusMessage(isTimeUp ? "タイムアップ！時間切れ" : "失敗！間違えました", "text-red-400 font-bold");
+
+            // STARTボタンを再表示
+            startBtn.style.display = 'flex';
+            setTimeout(() => {
+                startBtn.classList.remove('scale-0', 'opacity-0');
+            }, 50);
+
+            // ゲームオーバーモーダルを表示
+            showModal(
+                failTitle,
+                `
+                <div class="text-center py-2">
+                    <p class="text-amber-100 mb-2">${failMessage}</p>
+                    <div class="bg-black/60 p-3 rounded-lg border border-purple-800 my-4 text-center">
+                        <span class="text-xs text-amber-200/70 block mb-1">到達記録</span>
+                        <span class="font-vt323 text-2xl text-amber-400">STAGE ${state.currentRound} (${state.userStep} / ${state.sequence.length}音)</span>
+                    </div>
+                    <p class="text-xs text-amber-200/60">もう一度チャレンジしてクリアを目指そう！</p>
+                </div>
+                `
+            );
+        }
+
+        // ステータスメッセージの設定用ヘルパー関数
+        function setStatusMessage(msg, colorClass = "text-amber-300") {
+            statusMessage.textContent = msg;
+            statusMessage.className = `text-center text-sm sm:text-base font-bold h-6 ${colorClass}`;
+        }
+
+        /* =============================================================
+           10. イベントリスナー ＆ モーダル操作
+        ============================================================= */
+        startBtn.addEventListener('click', startGame);
+        replayBtn.addEventListener('click', replaySequence);
+
+        // ミュート切り替えボタン
+        soundToggleBtn.addEventListener('click', () => {
+            state.soundMuted = !state.soundMuted;
+            if (state.soundMuted) {
+                soundIcon.className = "fa-solid fa-volume-xmark text-lg text-red-400";
+            } else {
+                soundIcon.className = "fa-solid fa-volume-high text-lg text-gray-300";
+                playUiSound('click');
+            }
+        });
+
+        // 隠しデバッグ機能（ルールモーダルで条件を満たすとクリアテスト可能）
+        let debugClickCount = 0;
+        function triggerDebugClear() {
+            debugClickCount++;
+            playUiSound('click');
+            if (debugClickCount >= 3) {
+                debugClickCount = 0;
+                closeModal();
+                handleGameClear();
+            }
+        }
+
+        // ルール表示ボタン
+        rulesBtn.addEventListener('click', () => {
+            playUiSound('click');
+            debugClickCount = 0;
+            showModal(
+                "ルール",
+                `
+                <div class="space-y-3 text-sm text-amber-100">
+                    <div class="flex gap-3 items-start">
+                        <span class="w-6 h-6 rounded bg-amber-500 text-black font-pixel text-xs flex items-center justify-center shrink-0 font-bold mt-0.5">1</span>
+                        <p><strong class="text-amber-300">9色のライト:</strong> STARTを押すと9色のライトが音と共にゆっくり点滅します。</p>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <span class="w-6 h-6 rounded bg-amber-500 text-black font-pixel text-xs flex items-center justify-center shrink-0 font-bold mt-0.5">2</span>
+                        <p><strong class="text-amber-300">音数が増加:</strong> 1R目は<span class="text-yellow-300 font-bold">3音</span>、2R目は<span class="text-yellow-300 font-bold">5音</span>、3R目は<span class="text-yellow-300 font-bold">7音</span>になります。</p>
+                    </div>
+                    <div class="flex gap-3 items-start cursor-pointer select-none group" onclick="triggerDebugClear()">
+                        <span class="w-6 h-6 rounded bg-amber-500 text-black font-pixel text-xs flex items-center justify-center shrink-0 font-bold mt-0.5">3</span>
+                        <p><strong class="text-amber-300">制限時間 & 再生:</strong> 各ラウンド<span class="text-yellow-300 font-bold">1回まで</span>「もう一度再生」ボタンで光る順番を再確認できます。</p>
+                    </div>
+                </div>
+                `
+            );
+        });
+
+        // モーダル開閉用関数
+        function showModal(title, htmlContent) {
+            if (title) {
+                modalTitle.textContent = title;
+                modalTitle.style.display = 'block';
+            } else {
+                modalTitle.style.display = 'none';
+            }
+            modalBody.innerHTML = htmlContent;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }
+
+        function closeModal() {
+            playUiSound('click');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+
+        modalCloseBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        /* =============================================================
+           11. キーボード操作対応 (QWE / ASD / ZXC および 1〜9 キー)
+        ============================================================= */
+        window.addEventListener('keydown', (e) => {
+            if (!state.isPlaying || state.isShowingSequence) return;
+            const keyMap = {
+                // QWE ASD ZXC レイアウト
+                'KeyQ': 0, 'KeyW': 1, 'KeyE': 2,
+                'KeyA': 3, 'KeyS': 4, 'KeyD': 5,
+                'KeyZ': 6, 'KeyX': 7, 'KeyC': 8,
+                // 数字キー 1-9
+                'Digit1': 0, 'Digit2': 1, 'Digit3': 2,
+                'Digit4': 3, 'Digit5': 4, 'Digit6': 5,
+                'Digit7': 6, 'Digit8': 7, 'Digit9': 8
+            };
+            if (keyMap[e.code] !== undefined) {
+                handlePadClick(keyMap[e.code]);
+            }
+        });
+
+        /* =============================================================
+           12. 初期化
+        ============================================================= */
+        window.onload = () => {
+            renderBoard();
+        };
+    </script>
+</body>
+</html>

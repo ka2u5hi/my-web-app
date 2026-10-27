@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ロシアンルーレット — 対 CPU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#0f0d0b;
+    --bg-panel:#1a1611;
+    --bg-panel-2:#221c15;
+    --blood:#8c2f2f;
+    --blood-bright:#c1403d;
+    --brass:#b4924c;
+    --brass-dim:#7a6636;
+    --bone:#ece4d4;
+    --dim:#8c8272;
+    --border:#3a3024;
+    --safe:#4f7a4a;
+    --safe-bright:#6fae67;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-void);
+    color:var(--bone);
+    font-family:'Noto Sans JP',sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .stage{
+    width:100%;
+    max-width:460px;
+  }
+  .eyebrow{
+    text-align:center;
+    color:var(--dim);
+    font-size:13px;
+    letter-spacing:.04em;
+    margin:0 0 4px;
+  }
+  h1{
+    font-family:'Shippori Mincho',serif;
+    font-weight:800;
+    text-align:center;
+    font-size:34px;
+    margin:0 0 24px;
+    letter-spacing:.06em;
+    color:var(--bone);
+  }
+  .lives-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    gap:16px;
+  }
+  .side{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .side.left{align-items:flex-start;}
+  .side.right{align-items:flex-end;}
+  .side-name{
+    font-size:13px;
+    color:var(--dim);
+  }
+  .side-name.active{color:var(--brass);font-weight:700;}
+  .bullets{
+    display:flex;
+    gap:5px;
+  }
+  .bullets.right{flex-direction:row-reverse;}
+  .bullet-icon{
+    width:16px;height:16px;
+  }
+  .vs{
+    font-family:'Shippori Mincho',serif;
+    color:var(--brass-dim);
+    font-size:18px;
+    padding:0 4px;
+  }
+  .cylinder-wrap{
+    display:flex;
+    justify-content:center;
+    margin:8px 0 12px;
+  }
+  .turn-banner{
+    text-align:center;
+    font-size:15px;
+    color:var(--dim);
+    min-height:22px;
+    margin-bottom:14px;
+  }
+  .turn-banner.player{color:var(--brass);}
+  .turn-banner.cpu{color:var(--blood-bright);}
+
+  .quiz-card{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .quiz-label{
+    font-size:12px;
+    color:var(--dim);
+    margin:0 0 8px;
+  }
+  .quiz-q{
+    font-size:15px;
+    color:var(--bone);
+    margin:0 0 14px;
+    line-height:1.6;
+  }
+  .quiz-options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .quiz-option{
+    padding:10px 8px;
+    font-size:13px;
+    background:var(--bg-panel-2);
+    color:var(--bone);
+    border:1px solid var(--border);
+    border-radius:6px;
+    cursor:pointer;
+    text-align:left;
+  }
+  .quiz-option:hover:not(:disabled){border-color:var(--brass-dim);}
+  .quiz-option:disabled{cursor:default;}
+  .quiz-option.correct{background:rgba(111,174,103,.18);border-color:var(--safe-bright);color:var(--safe-bright);}
+  .quiz-option.wrong{background:rgba(193,64,61,.18);border-color:var(--blood-bright);color:var(--blood-bright);}
+  .quiz-result{
+    margin:12px 0 0;
+    font-size:13px;
+    min-height:18px;
+  }
+  .quiz-result.correct{color:var(--safe-bright);}
+  .quiz-result.wrong{color:var(--dim);}
+
+  .prob-note{
+    text-align:center;
+    font-size:12px;
+    color:var(--dim);
+    margin:0 0 8px;
+  }
+  .prob-note .num{color:var(--brass);font-weight:700;}
+  .prob-note .num.lowered{color:var(--safe-bright);}
+
+  .fire-btn{
+    display:block;
+    width:100%;
+    padding:16px;
+    font-family:'Shippori Mincho',serif;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:.05em;
+    background:var(--blood);
+    color:#f4e9de;
+    border:1px solid var(--blood-bright);
+    border-radius:6px;
+    cursor:pointer;
+    transition:transform .08s ease, background .15s ease;
+  }
+  .fire-btn:hover:not(:disabled){background:var(--blood-bright);}
+  .fire-btn:active:not(:disabled){transform:scale(.98);}
+  .fire-btn:disabled{
+    background:var(--bg-panel-2);
+    color:var(--dim);
+    border-color:var(--border);
+    cursor:not-allowed;
+  }
+  .hidden{display:none !important;}
+  .log{
+    margin-top:20px;
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px 14px;
+    height:112px;
+    overflow-y:auto;
+    font-size:13px;
+    line-height:1.8;
+    color:var(--dim);
+  }
+  .log p{margin:0;}
+  .log p.hit{color:var(--blood-bright);}
+  .log p.you{color:var(--brass);}
+  .log p.good{color:var(--safe-bright);}
+  .footer-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+  }
+  .sound-btn{
+    background:none;
+    border:1px solid var(--border);
+    color:var(--dim);
+    border-radius:6px;
+    padding:6px 10px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .sound-btn:hover{color:var(--bone);border-color:var(--brass-dim);}
+  .rules{
+    font-size:12px;
+    color:var(--dim);
+  }
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(6,5,4,.86);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .overlay.show{display:flex;}
+  .result-card{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:32px 28px;
+    text-align:center;
+    max-width:340px;
+  }
+  .result-title{
+    font-family:'Shippori Mincho',serif;
+    font-size:26px;
+    margin:0 0 10px;
+  }
+  .result-title.win{color:var(--brass);}
+  .result-title.lose{color:var(--blood-bright);}
+  .result-sub{
+    color:var(--dim);
+    font-size:14px;
+    margin:0 0 22px;
+  }
+  .restart-btn{
+    padding:12px 28px;
+    font-family:'Shippori Mincho',serif;
+    font-size:16px;
+    background:var(--brass);
+    color:#211a10;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .restart-btn:hover{background:#c7a45c;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-6px);}
+    40%{transform:translateX(6px);}
+    60%{transform:translateX(-4px);}
+    80%{transform:translateX(4px);}
+  }
+  .shake{animation:shake .35s ease;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <p class="eyebrow">6連発 · 3ラウンド先取 · クイズ正解で被弾確率ダウン</p>
+  <h1>ロシアンルーレット</h1>
+
+  <div class="lives-row">
+    <div class="side left">
+      <span class="side-name" id="playerName">あなた</span>
+      <div class="bullets" id="playerLives"></div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="side right">
+      <span class="side-name" id="cpuName">CPU</span>
+      <div class="bullets right" id="cpuLives"></div>
+    </div>
+  </div>
+
+  <div class="cylinder-wrap">
+    <svg id="cylinderSvg" width="200" height="200" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="92" fill="none" stroke="#3a3024" stroke-width="2"/>
+      <g id="chamberGroup"></g>
+      <polygon points="100,4 92,20 108,20" fill="#b4924c"/>
+      <circle cx="100" cy="100" r="14" fill="#221c15" stroke="#3a3024" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <p class="turn-banner" id="turnBanner">シリンダーを回転させています…</p>
+
+  <div class="quiz-card hidden" id="quizCard">
+    <p class="quiz-label">正解すると、あなたが撃たれる確率が半分になる</p>
+    <p class="quiz-q" id="quizQ"></p>
+    <div class="quiz-options" id="quizOptions"></div>
+    <p class="quiz-result" id="quizResult"></p>
+  </div>
+
+  <p class="prob-note hidden" id="probNote"></p>
+  <button class="fire-btn hidden" id="fireBtn" disabled>引き金を引く</button>
+
+  <div class="footer-row">
+    <span class="rules">相手のシリンダーは共有 · 弾は毎ラウンド1発</span>
+    <button class="sound-btn" id="soundBtn">音: ON</button>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <p class="result-title" id="resultTitle"></p>
+    <p class="result-sub" id="resultSub"></p>
+    <button class="restart-btn" id="restartBtn">もう一度</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CHAMBERS = 6;
+  const WIN_ROUNDS = 3;
+
+  const QUESTIONS = [
+    {q:'日本の首都はどこ?', options:['大阪','東京','京都','名古屋'], correct:1},
+    {q:'1年は何日?(平年)', options:['364日','365日','366日','360日'], correct:1},
+    {q:'水は何度で沸騰する?(気圧1atm)', options:['90度','100度','120度','80度'], correct:1},
+    {q:'人間の心臓はいくつ?', options:['1つ','2つ','3つ','4つ'], correct:0},
+    {q:'1週間は何日?', options:['5日','6日','7日','8日'], correct:2},
+    {q:'太陽系で地球から一番近い惑星は?(選択肢中)', options:['金星','木星','土星','天王星'], correct:0},
+    {q:'虹の色は一般的に何色?', options:['5色','6色','7色','8色'], correct:2},
+    {q:'日本の国鳥は?', options:['ツル','キジ','ハト','フクロウ'], correct:1},
+    {q:'1ダースはいくつ?', options:['10','12','15','20'], correct:1},
+    {q:'富士山がある都道府県は?(2県にまたがる,片方)', options:['静岡県','長野県','山梨県(と静岡県)','群馬県'], correct:2},
+    {q:'三角形の内角の和は?', options:['90度','180度','270度','360度'], correct:1},
+    {q:'1キログラムは何グラム?', options:['100g','1000g','10000g','10g'], correct:1}
+  ];
+  let lastQuestionIndex = -1;
+  function pickQuestion(){
+    let idx;
+    do{ idx = Math.floor(Math.random()*QUESTIONS.length); } while(idx===lastQuestionIndex && QUESTIONS.length>1);
+    lastQuestionIndex = idx;
+    return QUESTIONS[idx];
+  }
+
+  let playerLives, cpuLives, currentChamber, turn, roundStarter, busy, soundOn=true;
+
+  const fireBtn = document.getElementById('fireBtn');
+  const turnBanner = document.getElementById('turnBanner');
+  const logEl = document.getElementById('log');
+  const overlay = document.getElementById('overlay');
+  const chamberGroup = document.getElementById('chamberGroup');
+  const cylinderSvg = document.getElementById('cylinderSvg');
+  const soundBtn = document.getElementById('soundBtn');
+  const quizCard = document.getElementById('quizCard');
+  const quizQ = document.getElementById('quizQ');
+  const quizOptions = document.getElementById('quizOptions');
+  const quizResult = document.getElementById('quizResult');
+  const probNote = document.getElementById('probNote');
+
+  let audioCtx = null;
+  function ac(){
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    return audioCtx;
+  }
+  function playClick(){
+    if(!soundOn) return;
+    const ctx = ac();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type='square'; o.frequency.value=900;
+    g.gain.setValueAtTime(0.06, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.08);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.08);
+  }
+  function playBang(){
+    if(!soundOn) return;
+    const ctx = ac();
+    const bufferSize = ctx.sampleRate*0.4;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i] = (Math.random()*2-1) * Math.pow(1-i/bufferSize, 2);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type='lowpass'; filter.frequency.value=1200;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.5, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    noise.connect(filter); filter.connect(g); g.connect(ctx.destination);
+    noise.start();
+  }
+  function playGood(){
+    if(!soundOn) return;
+    const ctx = ac();
+    [660,880].forEach((freq,i)=>{
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime+i*0.09);
+      g.gain.linearRampToValueAtTime(0.07, ctx.currentTime+i*0.09+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.09+0.18);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime+i*0.09); o.stop(ctx.currentTime+i*0.09+0.2);
+    });
+  }
+
+  soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.textContent = '音: ' + (soundOn ? 'ON' : 'OFF');
+  });
+
+  function bulletIconSvg(filled){
+    const color = filled ? '#c1403d' : '#3a3024';
+    return '<svg class="bullet-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="'+color+'"/></svg>';
+  }
+  function renderLives(){
+    document.getElementById('playerLives').innerHTML = Array.from({length:WIN_ROUNDS}).map((_,i)=>bulletIconSvg(i<playerLives)).join('');
+    document.getElementById('cpuLives').innerHTML = Array.from({length:WIN_ROUNDS}).map((_,i)=>bulletIconSvg(i<cpuLives)).join('');
+  }
+
+  function drawChambers(){
+    chamberGroup.innerHTML='';
+    const r = 62;
+    for(let i=0;i<CHAMBERS;i++){
+      const angle = (i/CHAMBERS)*2*Math.PI - Math.PI/2;
+      const cx = 100 + r*Math.cos(angle);
+      const cy = 100 + r*Math.sin(angle);
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', cx);
+      c.setAttribute('cy', cy);
+      c.setAttribute('r', 15);
+      c.setAttribute('fill', '#141009');
+      c.setAttribute('stroke', '#4a3d2a');
+      c.setAttribute('stroke-width', '1.5');
+      chamberGroup.appendChild(c);
+    }
+  }
+  function rotateToChamber(index, animate){
+    const deg = -(index/CHAMBERS)*360;
+    chamberGroup.style.transition = animate ? 'transform .5s cubic-bezier(.2,.7,.3,1)' : 'none';
+    chamberGroup.style.transformOrigin = '100px 100px';
+    chamberGroup.style.transform = 'rotate('+deg+'deg)';
+  }
+
+  function log(text, cls){
+    const p = document.createElement('p');
+    if(cls) p.className = cls;
+    p.textContent = text;
+    logEl.appendChild(p);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function currentHitProb(){
+    return 1/(CHAMBERS - currentChamber);
+  }
+
+  function newGame(){
+    playerLives = WIN_ROUNDS;
+    cpuLives = WIN_ROUNDS;
+    roundStarter = 'player';
+    overlay.classList.remove('show');
+    logEl.innerHTML='';
+    renderLives();
+    log('新しい対戦を始めます。');
+    startRound();
+  }
+
+  function startRound(){
+    currentChamber = 0;
+    turn = roundStarter;
+    busy = false;
+    drawChambers();
+    rotateToChamber(0, false);
+    log('シリンダーを回転させた…');
+    updateTurnUI();
+  }
+
+  function updateTurnUI(){
+    quizCard.classList.add('hidden');
+    probNote.classList.add('hidden');
+    fireBtn.classList.add('hidden');
+    if(turn === 'player'){
+      turnBanner.textContent = 'あなたの番です';
+      turnBanner.className = 'turn-banner player';
+      showQuiz();
+    } else {
+      turnBanner.textContent = 'CPUの番です…';
+      turnBanner.className = 'turn-banner cpu';
+      setTimeout(()=>{ if(!busy) pull('cpu', currentHitProb()); }, 900 + Math.random()*700);
+    }
+  }
+
+  function showQuiz(){
+    const item = pickQuestion();
+    quizQ.textContent = item.q;
+    quizResult.textContent = '';
+    quizResult.className = 'quiz-result';
+    quizOptions.innerHTML = '';
+    item.options.forEach((opt, i)=>{
+      const b = document.createElement('button');
+      b.className = 'quiz-option';
+      b.textContent = opt;
+      b.addEventListener('click', ()=> answerQuiz(i, item));
+      quizOptions.appendChild(b);
+    });
+    quizCard.classList.remove('hidden');
+  }
+
+  function answerQuiz(choiceIndex, item){
+    const buttons = quizOptions.querySelectorAll('.quiz-option');
+    buttons.forEach((b,i)=>{
+      b.disabled = true;
+      if(i===item.correct) b.classList.add('correct');
+      else if(i===choiceIndex) b.classList.add('wrong');
+    });
+    const correct = choiceIndex === item.correct;
+    let prob = currentHitProb();
+    if(correct){
+      prob = prob/2;
+      quizResult.textContent = '正解。被弾確率が半分に下がった。';
+      quizResult.className = 'quiz-result correct';
+      playGood();
+      log('クイズ正解 — 被弾確率ダウン。', 'good');
+    } else {
+      quizResult.textContent = '不正解。確率はそのまま。';
+      quizResult.className = 'quiz-result wrong';
+      log('クイズ不正解 — 確率そのまま。');
+    }
+    setTimeout(()=>{
+      quizCard.classList.add('hidden');
+      showFireButton(prob, correct);
+    }, 1100);
+  }
+
+  function showFireButton(prob, lowered){
+    const pct = Math.round(prob*100);
+    probNote.innerHTML = '被弾確率: <span class="num'+(lowered?' lowered':'')+'">'+pct+'%</span>';
+    probNote.classList.remove('hidden');
+    fireBtn.classList.remove('hidden');
+    fireBtn.disabled = false;
+    fireBtn.textContent = '引き金を引く';
+    fireBtn.onclick = ()=>{
+      if(turn === 'player' && !busy) pull('player', prob);
+    };
+  }
+
+  function endRound(loser){
+    if(loser === 'player'){
+      playerLives--;
+      log('あなたに着弾。ラウンド失点。', 'hit');
+    } else {
+      cpuLives--;
+      log('CPUに着弾。ラウンド獲得。', 'hit you');
+    }
+    renderLives();
+    if(playerLives<=0 || cpuLives<=0){
+      setTimeout(()=>showResult(playerLives<=0 ? 'lose' : 'win'), 700);
+      return;
+    }
+    roundStarter = roundStarter === 'player' ? 'cpu' : 'player';
+    setTimeout(startRound, 1300);
+  }
+
+  function pull(shooter, hitProb){
+    if(busy) return;
+    busy = true;
+    fireBtn.disabled = true;
+    probNote.classList.add('hidden');
+    turnBanner.textContent = shooter==='player' ? 'あなたが引き金を引いた…' : 'CPUが引き金を引いた…';
+    rotateToChamber(currentChamber, true);
+    setTimeout(()=>{
+      const isHit = Math.random() < hitProb;
+      if(isHit){
+        playBang();
+        cylinderSvg.classList.add('shake');
+        setTimeout(()=>cylinderSvg.classList.remove('shake'), 400);
+        endRound(shooter);
+      } else {
+        playClick();
+        log((shooter==='player' ? 'あなた: ' : 'CPU: ') + 'カチッ… 何も起こらなかった。', shooter==='player' ? 'you' : '');
+        currentChamber = Math.min(currentChamber+1, CHAMBERS-1);
+        if(currentChamber >= CHAMBERS-1 && Math.random() < 0.0001){
+          // safety fallback, effectively unreachable
+        }
+        turn = shooter === 'player' ? 'cpu' : 'player';
+        busy = false;
+        if(currentChamber >= CHAMBERS){
+          log('弾倉に弾はなかった。再装填する。');
+          setTimeout(startRound, 1200);
+        } else {
+          updateTurnUI();
+        }
+      }
+    }, 600);
+  }
+
+  function showResult(kind){
+    document.getElementById('resultTitle').textContent = kind==='win' ? 'あなたの勝ち' : 'あなたの負け';
+    document.getElementById('resultTitle').className = 'result-title ' + kind;
+    document.getElementById('resultSub').textContent = kind==='win'
+      ? 'CPUを追い詰めた。'
+      : 'CPUに軍配が上がった。';
+    overlay.classList.add('show');
+  }
+
+  document.getElementById('restartBtn').addEventListener('click', newGame);
+
+  newGame();
+})();
+</script>
+</body>
+</html>
