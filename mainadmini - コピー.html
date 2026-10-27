@@ -202,14 +202,14 @@
                 <p id="portal-description" class="text-xs text-gray-200 leading-relaxed bg-gray-950 p-2 border border-gray-700"></p>
             </div>
 
-            <div class="space-y-2 pt-1">
-                <button id="launch-game-btn" class="w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-gamepad"></i> しれん（ミニゲーム）に いどむ
-                </button>
-                <button onclick="closePortalModal()" class="w-full dq-button py-2 bg-gray-900 text-gray-400 text-xs border-gray-600">
-                    あとで いどむ
-                </button>
+            <!-- ボタンコンテナ（単一ボタン or 複数ゲーム選択ボタン） -->
+            <div id="portal-buttons-container" class="space-y-2 pt-1">
+                <!-- JSで動的生成 -->
             </div>
+
+            <button onclick="closePortalModal()" class="w-full dq-button py-2 bg-gray-900 text-gray-400 text-xs border-gray-600 mt-2">
+                あとで いどむ
+            </button>
         </div>
     </div>
 
@@ -279,14 +279,62 @@
             }
         }
 
-        // --- データ設定 ---
+        // --- データ設定（複数のURLを `urls` 配列に登録可能） ---
         const spotsData = [
-            { id: 1, name: "キーワード 1", char: "文", code: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
-            { id: 2, name: "キーワード 2", char: "化", code: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
-            { id: 3, name: "キーワード 3", char: "祭", code: "https://ka2u5hi.github.io/my-web-app/10timer_3.html", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" },
-            { id: 4, name: "キーワード 4", char: "ク", code: "https://ka2u5hi.github.io/my-web-app/memory_4.html", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
-            { id: 5, name: "キーワード 5", char: "エ", code: "https://ka2u5hi.github.io/my-web-app/kioku_5.html", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" },
-            { id: 6, name: "キーワード 6", char: "スト", code: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+            {
+                id: 1,
+                name: "キーワード 1",
+                char: "文",
+                code: "SPOT_1",
+                urls: [
+                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" }
+                ]
+            },
+            {
+                id: 2,
+                name: "キーワード 2",
+                char: "化",
+                code: "SPOT_2",
+                urls: [
+                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" }
+                ]
+            },
+            {
+                id: 3,
+                name: "キーワード 3",
+                char: "祭",
+                code: "SPOT_3",
+                urls: [
+                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                ]
+            },
+            {
+                id: 4,
+                name: "キーワード 4",
+                char: "ク",
+                code: "SPOT_4",
+                urls: [
+                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" }
+                ]
+            },
+            {
+                id: 5,
+                name: "キーワード 5",
+                char: "エ",
+                code: "SPOT_5",
+                urls: [
+                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                ]
+            },
+            {
+                id: 6,
+                name: "キーワード 6",
+                char: "スト",
+                code: "SPOT_6",
+                urls: [
+                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+                ]
+            }
         ];
 
         let foundSpotIds = [];
@@ -464,36 +512,31 @@
             document.getElementById('portal-spot-name').textContent = spot.name;
             document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、きーわーどの【 もじ 】を てにいれよう！`;
 
-            document.getElementById('launch-game-btn').onclick = () => {
-                playSe('click');
-                // 同じタブ（同じウィンドウ）でミニゲームへ遷移する
-                window.location.href = spot.url;
-            };
+            const btnContainer = document.getElementById('portal-buttons-container');
+            btnContainer.innerHTML = '';
+
+            // ゲームURLが複数ある場合・単数の場合でボタンを生成
+            spot.urls.forEach((game, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
+                btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
+                btn.onclick = () => {
+                    playSe('click');
+                    // 選択したミニゲームへ直接リダイレクト（同じタブ）
+                    window.location.href = game.url;
+                };
+                btnContainer.appendChild(btn);
+            });
 
             document.getElementById('game-portal-modal').classList.remove('hidden');
         }
 
-        function grantKeyword(spot) {
-            playSe('fanfare');
-            if (!foundSpotIds.includes(spot.id)) {
-                foundSpotIds.push(spot.id);
-                saveProgress();
-                renderSpotList();
-                renderKeywordSlots();
-                updateProgressUI();
-            }
-            closeModal();
-
-            showCustomModal(
-                "fa-trophy",
-                "キーワード GET！",
-                `【 ${spot.name} 】の もじ【 ${spot.char} 】を てにいれた！`,
-                [{ text: "つぎへ すすむ", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold", action: resumeScanner }]
-            );
-        }
-
         function closePortalModal() {
             document.getElementById('game-portal-modal').classList.add('hidden');
+            // モーダルを閉じたらスキャナー再開可能にするバグ修正
+            setTimeout(() => {
+                isScannerProcessing = false;
+            }, 300);
         }
 
         // QRスキャナー起動
@@ -522,7 +565,7 @@
             closePortalModal();
             setTimeout(() => {
                 isScannerProcessing = false;
-            }, 800);
+            }, 500);
         }
 
         // メッセージモーダル
