@@ -285,30 +285,27 @@
                 id: 1,
                 name: "キーワード 1",
                 char: "文",
-                code: "SPOT_1","SPOT_2",
+                code: "SPOT_1",
                 urls: [
-                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
-                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" }
                 ]
             },
             {
                 id: 2,
                 name: "キーワード 2",
                 char: "化",
-                code: "SPOT_3","SPOT_4",
+                code: "SPOT_2",
                 urls: [
-                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
-                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" }
+                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" }
                 ]
             },
             {
                 id: 3,
                 name: "キーワード 3",
                 char: "祭",
-                code: "SPOT_5","SPOT_6",
+                code: "SPOT_3",
                 urls: [
-                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" },
-                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
                 ]
             },
             {
@@ -317,7 +314,7 @@
                 char: "ク",
                 code: "SPOT_4",
                 urls: [
-                    
+                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" }
                 ]
             },
             {
@@ -326,7 +323,16 @@
                 char: "エ",
                 code: "SPOT_5",
                 urls: [
-                    
+                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                ]
+            },
+            {
+                id: 6,
+                name: "キーワード 6",
+                char: "スト",
+                code: "SPOT_6",
+                urls: [
+                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
                 ]
             }
         ];
@@ -527,7 +533,7 @@
 
         function closePortalModal() {
             document.getElementById('game-portal-modal').classList.add('hidden');
-            // モーダルを閉じたらスキャナー再開可能にするバグ修正
+            // ★モーダルを閉じたらスキャナーを確実に再開可能な状態に戻す
             setTimeout(() => {
                 isScannerProcessing = false;
             }, 300);
@@ -588,6 +594,9 @@
 
         function closeModal() {
             document.getElementById('custom-modal').classList.add('hidden');
+            setTimeout(() => {
+                isScannerProcessing = false;
+            }, 300);
         }
     </script>
 </body>

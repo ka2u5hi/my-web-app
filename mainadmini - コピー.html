@@ -533,7 +533,7 @@
 
         function closePortalModal() {
             document.getElementById('game-portal-modal').classList.add('hidden');
-            // モーダルを閉じたらスキャナー再開可能にするバグ修正
+            // ★モーダルを閉じたらスキャナーを確実に再開可能な状態に戻す
             setTimeout(() => {
                 isScannerProcessing = false;
             }, 300);
@@ -594,6 +594,9 @@
 
         function closeModal() {
             document.getElementById('custom-modal').classList.add('hidden');
+            setTimeout(() => {
+                isScannerProcessing = false;
+            }, 300);
         }
     </script>
 </body>
