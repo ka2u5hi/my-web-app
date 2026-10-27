@@ -358,6 +358,21 @@
             }, 100);
         };
 
+        // ブラウザの「戻る」や別タブ・リダイレクトからの復帰（pageshowイベント）で確実にスキャナーを再起動
+        window.addEventListener('pageshow', function(event) {
+            // キャッシュからの復帰（event.persisted）または復帰時にフラグ初期化＆スキャナー再起動
+            isScannerProcessing = false;
+            if (event.persisted) {
+                loadProgress();
+                renderSpotList();
+                renderKeywordSlots();
+                updateProgressUI();
+                setTimeout(() => {
+                    startScanner();
+                }, 200);
+            }
+        });
+
         function saveProgress() {
             localStorage.setItem('quest_of_r_dq_progress', JSON.stringify(foundSpotIds));
         }
@@ -577,27 +592,27 @@
         }
 
         // QRスキャナー起動
-        function startScanner() {
+        async function startScanner() {
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
             if (retryBtn) retryBtn.classList.add('hidden');
             if (badgeElem) badgeElem.textContent = "かめら きどうちゅう";
 
-            // 既存のスキャナーインスタンスが残っている場合はクリーンアップ
+            isScannerProcessing = false;
+
+            // 既存のスキャナーインスタンスが残っている場合は停止して解放
             if (html5QrCode) {
                 try {
-                    html5QrCode.stop().catch(() => {}).finally(() => {
-                        html5QrCode = new Html5Qrcode("reader");
-                        initScannerInstance();
-                    });
-                    return;
+                    await html5QrCode.stop().catch(() => {});
+                    await html5QrCode.clear().catch(() => {});
                 } catch(e) {
-                    html5QrCode = new Html5Qrcode("reader");
+                    console.log("Scanner cleanup", e);
                 }
-            } else {
-                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode = null;
             }
 
+            // 新しいインスタンスを生成
+            html5QrCode = new Html5Qrcode("reader");
             initScannerInstance();
         }
 
@@ -629,7 +644,9 @@
                     handleSpotDiscovered(decodedText);
                 },
                 () => {}
-            ).catch(err => {
+            ).then(() => {
+                if (badgeElem) badgeElem.textContent = "さつえいちゅう";
+            }).catch(err => {
                 console.error("Camera error:", err);
                 if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
                 document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
