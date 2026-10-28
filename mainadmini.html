@@ -609,11 +609,11 @@
             html5QrCode = new Html5Qrcode("reader");
 
             const config = {
-                fps: 20, // スキャン頻度を10→20に引き上げて感度向上
+                fps: 25, // スキャン頻度を10→25に引き上げて感度向上
                 qrbox: (viewfinderWidth, viewfinderHeight) => {
                     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                    // 枠のサイズを0.75→0.85に拡大して読み取りやすく
-                    return { width: Math.floor(minEdge * 0.85), height: Math.floor(minEdge * 0.85) };
+                    // 枠のサイズを0.75→0.5に拡大して読み取りやすく
+                    return { width: Math.floor(minEdge * 0.5), height: Math.floor(minEdge * 0.5) };
                 },
                 aspectRatio: 1.0,
                 // カメラに高解像度（ピントが合いやすい画質）を要求
