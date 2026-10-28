@@ -73,6 +73,7 @@
             max-width: 100% !important;
             border: none !important;
             position: relative !important;
+            background: #000;
         }
         #reader video {
             width: 100% !important;
@@ -160,20 +161,23 @@
                 <h2 class="text-xs font-bold text-yellow-400 tracking-wider flex items-center gap-1.5">
                     <i class="fa-solid fa-qrcode"></i> まほうのたまで QRをさがす
                 </h2>
-                <span id="scanner-badge" class="text-[10px] text-gray-400">かめら きどうちゅう</span>
+                <span id="scanner-badge" class="text-[10px] text-gray-400">ていしちゅう</span>
             </div>
 
             <!-- スキャン枠 -->
-            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[200px] flex items-center justify-center overflow-hidden rounded">
+            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex flex-col items-center justify-center overflow-hidden rounded p-2">
                 <div id="reader" class="w-full"></div>
             </div>
 
             <p id="scanner-status" class="text-[11px] text-gray-400 mt-2 text-center px-1">
                 こうないの QRコード（まほうじん）に かざしてください
             </p>
-            <button id="retry-camera-btn" onclick="startScanner()" class="hidden mt-2 dq-button px-3 py-1 text-xs bg-yellow-600 border-yellow-300 text-black font-bold">
-                <i class="fa-solid fa-camera"></i> かめらを さいきどう
-            </button>
+
+            <div class="mt-2 w-full flex gap-2 justify-center">
+                <button id="retry-camera-btn" onclick="startScanner()" class="hidden dq-button px-3 py-1 text-xs bg-yellow-600 border-yellow-300 text-black font-bold">
+                    <i class="fa-solid fa-rotate-right"></i> かめらを さいきどう
+                </button>
+            </div>
         </section>
 
         <!-- だいじなもの（つよさ・獲得ログ） -->
@@ -282,23 +286,23 @@
                     // エラー音
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(150, now);
-                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.setValueAtTime(0.15, now);
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                     osc.start(now);
                     osc.stop(now + 0.2);
                 }
-            } catch(e) {
-                console.log("Audio play error", e);
+            } catch (e) {
+                console.log("Audio error:", e);
             }
         }
 
-        // --- データ設定（配列形式・文字列形式双方のコードに対応） ---
+        // --- データ設定（1対1対応のコード形式） ---
         const spotsData = [
             {
                 id: 1,
                 name: "キーワード 1",
                 char: "文",
-                code: ["SPOT_1", "SPOT_2"],
+                code: "SPOT_1",
                 urls: [
                     { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
                     { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
@@ -308,7 +312,7 @@
                 id: 2,
                 name: "キーワード 2",
                 char: "化",
-                code: ["SPOT_3", "SPOT_4"],
+                code: "SPOT_2",
                 urls: [
                     { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
                     { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
@@ -318,7 +322,7 @@
                 id: 3,
                 name: "キーワード 3",
                 char: "祭",
-                code: ["SPOT_5", "SPOT_6"],
+                code: "SPOT_3",
                 urls: [
                     { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
                     { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
@@ -328,14 +332,14 @@
                 id: 4,
                 name: "キーワード 4",
                 char: "ク",
-                code: "SPOT_7",
+                code: "SPOT_4",
                 urls: []
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "エ",
-                code: "SPOT_8",
+                code: "SPOT_5",
                 urls: []
             },
         ];
@@ -352,15 +356,13 @@
             renderKeywordSlots();
             updateProgressUI();
             
-            // ページ遷移復帰時の描画タイミングズレを防止
             setTimeout(() => {
                 startScanner();
             }, 100);
         };
 
-        // ブラウザの「戻る」や別タブ・リダイレクトからの復帰（pageshowイベント）で確実にスキャナーを再起動
+        // 復帰時（pageshowイベント）でカメラ再起動
         window.addEventListener('pageshow', function(event) {
-            // キャッシュからの復帰（event.persisted）または復帰時にフラグ初期化＆スキャナー再起動
             isScannerProcessing = false;
             if (event.persisted) {
                 loadProgress();
@@ -506,19 +508,15 @@
             }
         }
 
-        // スキャン後の処理（配列・文字列いずれのcode定義にも対応）
+        // スキャン後の処理（1対1対応判定）
         function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
-            const trimmedCode = scannedCode.trim();
+            const trimmedCode = (scannedCode || "").trim();
 
-            const spot = spotsData.find(s => {
-                if (Array.isArray(s.code)) {
-                    return s.code.includes(trimmedCode);
-                }
-                return s.code === trimmedCode;
-            });
+            // シンプルな1対1比較
+            const spot = spotsData.find(s => s.code === trimmedCode);
 
             if (!spot) {
                 playSe('error');
@@ -543,7 +541,6 @@
                 playSe('fanfare');
                 openGamePortal(spot);
             } else {
-                // ミニゲームが無いスポットの場合は直接文字を獲得
                 foundSpotIds.push(spot.id);
                 saveProgress();
                 renderSpotList();
@@ -568,14 +565,12 @@
             const btnContainer = document.getElementById('portal-buttons-container');
             btnContainer.innerHTML = '';
 
-            // ゲームURLが複数ある場合・単数の場合でボタンを生成
             spot.urls.forEach((game) => {
                 const btn = document.createElement('button');
                 btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
                 btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
                 btn.onclick = () => {
                     playSe('click');
-                    // 選択したミニゲームへ直接リダイレクト（同じタブ）
                     window.location.href = game.url;
                 };
                 btnContainer.appendChild(btn);
@@ -600,7 +595,6 @@
 
             isScannerProcessing = false;
 
-            // 既存のスキャナーインスタンスが残っている場合は停止して解放
             if (html5QrCode) {
                 try {
                     await html5QrCode.stop().catch(() => {});
@@ -611,7 +605,6 @@
                 html5QrCode = null;
             }
 
-            // 新しいインスタンスを生成
             html5QrCode = new Html5Qrcode("reader");
             initScannerInstance();
         }
@@ -620,9 +613,8 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
-            // レスポンシブに対応したqrboxサイズ設定
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgePercentage = 0.7; // 70%
+                const minEdgePercentage = 0.7;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
                 const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
                 return {

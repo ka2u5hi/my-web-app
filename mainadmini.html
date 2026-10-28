@@ -626,7 +626,14 @@
             const config = {
                 fps: 10,
                 qrbox: qrboxFunction,
-                aspectRatio: 1.0
+                aspectRatio: 1.0,
+                // カメラ解像度とフォーカスを最適化して読み取り距離・精度を向上
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    focusMode: "continuous"
+                }
             };
 
             html5QrCode.start(
@@ -641,7 +648,20 @@
             }).catch(err => {
                 console.error("Camera error:", err);
                 if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
-                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                
+                // Permission Denied やセキュリティ制限によるエラーハンドリング
+                if (err && (err.name === 'NotAllowedError' || String(err).includes('NotAllowedError'))) {
+                    document.getElementById('scanner-status').textContent = "※かめらの きょかが きょひ されました。 ぶらうざの 設定で かめらを きょか してください。";
+                    showCustomModal(
+                        "fa-lock",
+                        "かめら の きょか が つかわれていません",
+                        "ブラウザの カメラ権限が「ブロック」されているか、通信が保護されていません(HTTPSが必要)。\nアドレスバーの【カギマーク】または【AA】をタップして、カメラアクセスを「許可」に変更したあと再起動してください。",
+                        [{ text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold", action: startScanner }]
+                    );
+                } else {
+                    document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                }
+                
                 if (retryBtn) retryBtn.classList.remove('hidden');
             });
         }
