@@ -78,7 +78,7 @@
         #reader video {
             width: 100% !important;
             height: 100% !important;
-            max-height: 280px;
+            max-height: 250px;
             object-fit: cover !important;
             border-radius: 4px;
             display: block !important;
@@ -167,13 +167,6 @@
             <!-- スキャン枠 -->
             <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex flex-col items-center justify-center overflow-hidden rounded p-2">
                 <div id="reader" class="w-full"></div>
-                <div id="start-overlay" class="flex flex-col items-center justify-center py-6 text-center z-10 space-y-3">
-                    <i class="fa-solid fa-camera text-4xl text-yellow-400 animate-pulse"></i>
-                    <p class="text-xs text-gray-300">「かめらを起動」ボタンを押して<br>QRコードにかざしてください</p>
-                    <button onclick="startScanner()" class="dq-button px-4 py-2 text-xs bg-yellow-500 text-black font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-power-off"></i> かめらを 起動する
-                    </button>
-                </div>
             </div>
 
             <p id="scanner-status" class="text-[11px] text-gray-400 mt-2 text-center px-1">
@@ -293,17 +286,17 @@
                     // エラー音
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(150, now);
-                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.setValueAtTime(0.15, now);
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                     osc.start(now);
                     osc.stop(now + 0.2);
                 }
-            } catch(e) {
-                console.log("Audio play error", e);
+            } catch (e) {
+                console.log("Audio error:", e);
             }
         }
 
-        // --- データ設定（id1つにつきSPOTも1つに設定） ---
+        // --- データ設定（1対1対応のコード形式） ---
         const spotsData = [
             {
                 id: 1,
@@ -362,15 +355,24 @@
             renderSpotList();
             renderKeywordSlots();
             updateProgressUI();
+            
+            setTimeout(() => {
+                startScanner();
+            }, 100);
         };
 
-        // ブラウザの「戻る」やリダイレクト復帰時
+        // 復帰時（pageshowイベント）でカメラ再起動
         window.addEventListener('pageshow', function(event) {
             isScannerProcessing = false;
-            loadProgress();
-            renderSpotList();
-            renderKeywordSlots();
-            updateProgressUI();
+            if (event.persisted) {
+                loadProgress();
+                renderSpotList();
+                renderKeywordSlots();
+                updateProgressUI();
+                setTimeout(() => {
+                    startScanner();
+                }, 200);
+            }
         });
 
         function saveProgress() {
@@ -506,13 +508,14 @@
             }
         }
 
-        // スキャン後の処理
+        // スキャン後の処理（1対1対応判定）
         function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
             const trimmedCode = (scannedCode || "").trim();
 
+            // シンプルな1対1比較
             const spot = spotsData.find(s => s.code === trimmedCode);
 
             if (!spot) {
@@ -520,7 +523,7 @@
                 showCustomModal(
                     "fa-circle-xmark",
                     "ふしぎな じゅもん",
-                    `しかし なにも おこらなかった！ (※無効なQRコードです)`,
+                    `しかし なにも おこらなかった！\n(読み取った値: ${trimmedCode})`,
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
                 return;
@@ -538,7 +541,6 @@
                 playSe('fanfare');
                 openGamePortal(spot);
             } else {
-                // ミニゲームが無いスポットの場合は直接文字を獲得
                 foundSpotIds.push(spot.id);
                 saveProgress();
                 renderSpotList();
@@ -584,14 +586,12 @@
             }, 300);
         }
 
-        // QRスキャナー起動（ユーザーのタップをトリガーにして安全起動）
+        // QRスキャナー起動
         async function startScanner() {
-            const overlay = document.getElementById('start-overlay');
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
-
             if (retryBtn) retryBtn.classList.add('hidden');
-            if (badgeElem) badgeElem.textContent = "きどうちゅう...";
+            if (badgeElem) badgeElem.textContent = "かめら きどうちゅう";
 
             isScannerProcessing = false;
 
@@ -600,27 +600,33 @@
                     await html5QrCode.stop().catch(() => {});
                     await html5QrCode.clear().catch(() => {});
                 } catch(e) {
-                    console.log("Cleanup exception", e);
+                    console.log("Scanner cleanup", e);
                 }
                 html5QrCode = null;
             }
 
-            if (overlay) overlay.classList.add('hidden');
-
             html5QrCode = new Html5Qrcode("reader");
+            initScannerInstance();
+        }
 
-            // 機種を問わず最も高速・確実に読み取る全画面スキャン設定
+        function initScannerInstance() {
+            const retryBtn = document.getElementById('retry-camera-btn');
+            const badgeElem = document.getElementById('scanner-badge');
+
+            const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+                const minEdgePercentage = 0.7;
+                const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+                const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+                return {
+                    width: qrboxSize,
+                    height: qrboxSize
+                };
+            };
+
             const config = {
-                fps: 20, // 応答速度向上
-                // qrboxを指定しないことでカメラ全体でQRコードを判定・検出
-                rememberLastUsedCamera: true,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-                videoConstraints: {
-                    facingMode: "environment",
-                    focusMode: "continuous", // オートフォーカスを要求
-                    width: { min: 640, ideal: 1280 },
-                    height: { min: 480, ideal: 720 }
-                }
+                fps: 10,
+                qrbox: qrboxFunction,
+                aspectRatio: 1.0
             };
 
             html5QrCode.start(
@@ -629,18 +635,14 @@
                 (decodedText) => {
                     handleSpotDiscovered(decodedText);
                 },
-                (errorMessage) => {
-                    // フレームごとの未検出エラーは無視
-                }
+                () => {}
             ).then(() => {
                 if (badgeElem) badgeElem.textContent = "さつえいちゅう";
-                document.getElementById('scanner-status').textContent = "QRコードを画面内に大きく写してください";
             }).catch(err => {
-                console.error("Camera start error:", err);
-                if (badgeElem) badgeElem.textContent = "エラー";
-                document.getElementById('scanner-status').textContent = "※かめらの 起動に しっぱいしました。ブラウザのカメラー許可を確認してください。";
+                console.error("Camera error:", err);
+                if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
+                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
                 if (retryBtn) retryBtn.classList.remove('hidden');
-                if (overlay) overlay.classList.remove('hidden');
             });
         }
 
