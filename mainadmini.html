@@ -613,25 +613,22 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
-            // スマホ（縦向き・横向き）の画面サイズに合わせて最適なスキャン枠サイズを計算
+            // iPhone標準カメラ風：枠に合わせなくても画面の広範囲（約80%）で即座に検知できるように拡大
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgePercentage = 0.75;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+                // 画面幅の85%まで検知枠を広げて、画角に入った瞬間に反応するように改善
+                const qrboxSize = Math.floor(minEdgeSize * 0.85);
                 return {
-                    width: Math.max(180, qrboxSize),
-                    height: Math.max(180, qrboxSize)
+                    width: Math.max(220, qrboxSize),
+                    height: Math.max(220, qrboxSize)
                 };
             };
 
             const config = {
-                fps: 10,
+                fps: 25, // フレームレートを上げてレスポンスを高速化（iPhoneの標準カメラ並みの反応速度）
                 qrbox: qrboxFunction,
-                // スマホの縦横（画面回転）に対応するためアスペクト比の固定を解除
-                // カメラ解像度もスマホのアウトカメラに最適化
                 videoConstraints: {
-                    facingMode: "environment",
-                    focusMode: "continuous"
+                    facingMode: "environment"
                 }
             };
 
