@@ -613,25 +613,24 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
+            // スマホ（縦向き・横向き）の画面サイズに合わせて最適なスキャン枠サイズを計算
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgePercentage = 0.7;
+                const minEdgePercentage = 0.75;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
                 const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
                 return {
-                    width: qrboxSize,
-                    height: qrboxSize
+                    width: Math.max(180, qrboxSize),
+                    height: Math.max(180, qrboxSize)
                 };
             };
 
             const config = {
                 fps: 10,
                 qrbox: qrboxFunction,
-                aspectRatio: 1.0,
-                // カメラ解像度とフォーカスを最適化して読み取り距離・精度を向上
+                // スマホの縦横（画面回転）に対応するためアスペクト比の固定を解除
+                // カメラ解像度もスマホのアウトカメラに最適化
                 videoConstraints: {
                     facingMode: "environment",
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 480, ideal: 720, max: 1080 },
                     focusMode: "continuous"
                 }
             };
