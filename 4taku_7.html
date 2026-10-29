@@ -3,121 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4択常識クイズゲーム</title>
-    <!-- Tailwind CSS (デザイン・レイアウト用ライブラリ) -->
+    <title>4択常識クイズの試練</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Canvas Confetti (クリア時の紙吹雪演出用ライブラリ) -->
+    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Google Fonts (Interフォント) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- ドット絵風フォント (DotGothic16) -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'DotGothic16', monospace;
+            background-color: #000000;
+            color: #ffffff;
+            image-rendering: pixelated;
+            user-select: none;
+        }
+
+        /* ドラクエ風ウィンドウ */
+        .dq-window {
+            background-color: #000000;
+            border: 4px solid #ffffff;
+            border-radius: 6px;
+            box-shadow: inset 0 0 0 2px #000000, 0 4px 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        .dq-button {
+            background-color: #000000;
+            border: 2px solid #ffffff;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .dq-button:active {
+            background-color: #222222;
+            transform: scale(0.96);
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen p-4 flex flex-col items-center justify-between">
 
-    <!-- ゲーム全体のカードコンテナ -->
-    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-        
-        <!-- ヘッダーエリア -->
-        <div class="bg-indigo-600 p-6 text-white text-center relative">
-            <!-- ギブアップ（やめる）ボタン -->
-            <button onclick="location.href='https://ka2u5hi.github.io/my-web-app/mainadmini.html'" class="absolute top-4 left-4 bg-indigo-800 hover:bg-indigo-900 text-white text-xs px-3 py-1.5 rounded-lg border border-indigo-400 flex items-center gap-1 shadow transition">
-                ← やめる
-            </button>
+    <!-- ヘッダー -->
+    <header class="w-full max-w-sm flex justify-between items-center mb-2">
+        <button onclick="backToQuest()" class="dq-button px-3 py-1.5 text-xs border-yellow-400 text-yellow-300 flex items-center gap-1 font-bold">
+            ◀ 冒険の書に戻る
+        </button>
+        <span class="text-xs text-gray-400 font-bold">キーワード 4 の試練</span>
+    </header>
 
-            <h1 class="text-2xl font-bold tracking-wide">4択常識クイズ</h1>
-            <p class="text-indigo-200 text-sm mt-1">全5問パーフェクトでゲームクリア！</p>
-            
-            <!-- 通算クリア回数表示バッジ -->
-            <div class="mt-3 inline-flex items-center bg-indigo-700 bg-opacity-60 px-3 py-1 rounded-full text-xs font-semibold text-indigo-100">
-                <span>🏆 通算クリア数: </span>
-                <span id="clear-count" class="ml-1 text-amber-300 font-bold">0</span>回
-            </div>
-        </div>
+    <!-- メインコンテンツエリア -->
+    <main class="w-full max-w-sm text-center my-auto space-y-3">
+        <h1 class="text-xl font-bold text-yellow-400">4択常識クイズの試練</h1>
+        <p class="text-xs text-gray-300">全5問パーフェクトで試練クリア！</p>
 
-        <!-- メインコンテンツエリア -->
-        <div class="p-6">
+        <!-- ゲームカードコンテナ -->
+        <div class="dq-window p-4 text-left">
             
             <!-- 1. スタート画面 -->
-            <div id="start-screen" class="text-center py-8">
-                <div class="text-5xl mb-4">💡</div>
-                <h2 class="text-xl font-bold text-slate-800 mb-2">一般常識チャレンジ</h2>
-                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+            <div id="start-screen" class="text-center py-4 space-y-3">
+                <div class="text-4xl mb-2">💡</div>
+                <h2 class="text-base font-bold text-yellow-300">一般常識チャレンジ</h2>
+                <p class="text-xs text-gray-300 leading-relaxed">
                     10問の問題の中からランダムで5問出題されます。<br>
-                    全問正解するとゲームクリアとなり、クリア画面へ進みます！
+                    全問正解で試練クリア！
                 </p>
-                <button id="start-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition duration-200 transform hover:-translate-y-0.5">
-                    クイズを始める
+                <button id="start-btn" class="dq-button py-2.5 px-4 bg-yellow-500 border-yellow-300 text-black font-bold text-xs w-full mt-2">
+                    ▶ クイズを始める
                 </button>
             </div>
 
-            <!-- 2. クイズプレイ画面 (初期状態は非表示) -->
-            <div id="quiz-screen" class="hidden">
+            <!-- 2. クイズプレイ画面 -->
+            <div id="quiz-screen" class="hidden space-y-3">
                 <!-- プログレスバー & 問題番号情報 -->
-                <div class="mb-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <span id="question-number" class="text-xs font-bold text-indigo-600 uppercase tracking-wider">第 1 問</span>
-                        <span id="score-counter" class="text-xs font-bold text-slate-500">正解数: 0</span>
+                <div class="border-b border-gray-700 pb-2">
+                    <div class="flex justify-between items-center mb-1 text-xs">
+                        <span id="question-number" class="font-bold text-yellow-400">第 1 問</span>
+                        <span id="score-counter" class="text-gray-300">正解数: 0</span>
                     </div>
-                    <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                        <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 20%"></div>
+                    <div class="w-full bg-gray-900 border border-white h-2 rounded-none">
+                        <div id="progress-bar" class="bg-yellow-400 h-full transition-all duration-300" style="width: 20%"></div>
                     </div>
                 </div>
 
                 <!-- 問題文 -->
-                <h2 id="question-text" class="text-lg font-bold text-slate-800 mb-6 leading-relaxed min-h-[3rem]">
+                <h2 id="question-text" class="text-xs font-bold text-white leading-relaxed min-h-[2.5rem]">
                     ここに問題文が表示されます
                 </h2>
 
-                <!-- 4つの選択肢ボタン領域 -->
-                <div id="options-container" class="space-y-3">
-                    <!-- JavaScriptでボタンが動的に挿入されます -->
-                </div>
+                <!-- 選択肢ボタン領域 -->
+                <div id="options-container" class="space-y-2"></div>
 
                 <!-- 次へ移動ボタン領域 -->
-                <div class="mt-6 text-right">
-                    <button id="next-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl transition duration-200 shadow-md">
-                        次の問題へ →
+                <div class="mt-4 text-right">
+                    <button id="next-btn" class="hidden dq-button bg-yellow-500 border-yellow-300 text-black font-bold py-1.5 px-4 text-xs">
+                        次の問題へ ▶
                     </button>
                 </div>
             </div>
 
-            <!-- 3. 結果発表画面 (初期状態は非表示) -->
-            <div id="result-screen" class="hidden text-center py-6">
-                <h2 id="result-title" class="text-3xl font-black mb-3">結果発表</h2>
+            <!-- 3. 結果発表画面 -->
+            <div id="result-screen" class="hidden text-center py-4 space-y-3">
+                <h2 id="result-title" class="text-xl font-bold">結果発表</h2>
                 
-                <p id="score-text" class="text-slate-600 text-base mb-2">
-                    <!-- ここにスコアが表示されます -->
-                </p>
+                <p id="score-text" class="text-xs text-gray-200"></p>
                 
-                <div id="rank-badge" class="mb-6">
-                    <!-- ここに評価ランクが表示されます -->
-                </div>
+                <div id="rank-badge" class="my-2"></div>
 
                 <!-- リトライボタン -->
-                <button id="restart-btn" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition duration-200">
-                    もう一度挑戦する
+                <button id="restart-btn" class="dq-button w-full py-2.5 px-4 bg-gray-900 border-gray-400 text-xs font-bold text-white">
+                    ↻ もう一度挑戦する
                 </button>
             </div>
 
         </div>
-    </div>
+    </main>
+
+    <footer class="text-[10px] text-gray-500 mt-2">
+        Quest of R - Mini Game
+    </footer>
 
     <!-- JavaScriptロジック -->
     <script>
-        // クイズ問題データ（全10問のプール）
+        function backToQuest() {
+            window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
+        }
+
+        // クイズ問題データ（漢字・分かりやすいテキストに改訂）
         const quizDataPool = [
             {
-                question: "工業高校などで取得を推進されている、検定や資格の取得実績に応じて生徒を表彰する制度はどれ？",
+                question: "工業高校などで取得が推進されている、資格や検定の取得実績に応じて生徒を表彰する制度はどれ？",
                 options: ["ジュニアマイスター", "ITパスポート", "技能検定1級", "全国工業マスター"],
                 answer: 0
             },
             {
                 question: "日本で一番高い山は「富士山」ですが、2番目に高い山はどれ？",
-                options: ["槍ヶ岳", "北岳", "奥穂高岳", "富士山"],
+                options: ["槍ヶ岳（やりがたけ）", "北岳（きたくだけ）", "奥穂高岳（おくほたかだけ）", "富士山"],
                 answer: 1
             },
             {
@@ -127,7 +149,7 @@
             },
             {
                 question: "ことわざ「猿も木から落ちる」と同じ意味を持つことわざはどれ？",
-                options: ["犬も歩けば棒にあたる", "弘法にも筆の誤り", "石の上にも三年", "花より団子"],
+                options: ["犬も歩けば棒に当たる", "弘法にも筆の誤り", "石の上にも三年", "花より団子"],
                 answer: 1
             },
             {
@@ -136,17 +158,17 @@
                 answer: 2
             },
             {
-                question: "専門的な技術や技能を学び、ものづくりやテクノロジー分野の即戦力を育てる高等学校の種類はどれ？",
+                question: "専門的な技術を学び、モノづくりやテクノロジー分野の即戦力を育てる高等学校の種類はどれ？",
                 options: ["商業高校", "農業高校", "工業高校", "水産高校"],
                 answer: 2
             },
             {
-                question: "「光合成」を行う際に植物が吸収する気体はどれ？",
+                question: "「光合成」を行う際に、植物が吸収する気体はどれ？",
                 options: ["酸素", "窒素", "二酸化炭素", "水素"],
                 answer: 2
             },
             {
-                question: "y = ax^2 のように、yがxの2乗に比例するような関数を何という？",
+                question: "y = ax² のように、yがxの2乗に比例するような関数を何という？",
                 options: ["一次関数", "三角関数", "二次関数", "指数関数"],
                 answer: 2
             },
@@ -167,7 +189,6 @@
         let activeQuizData = [];
         let currentQuestionIndex = 0;
         let score = 0;
-        let clearCount = parseInt(localStorage.getItem('quiz_clear_count') || '0');
 
         const startScreen = document.getElementById('start-screen');
         const quizScreen = document.getElementById('quiz-screen');
@@ -186,9 +207,6 @@
         const resultTitle = document.getElementById('result-title');
         const scoreText = document.getElementById('score-text');
         const rankText = document.getElementById('rank-badge');
-        const clearCountElement = document.getElementById('clear-count');
-
-        clearCountElement.textContent = clearCount;
 
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -225,11 +243,11 @@
 
             currentQuiz.options.forEach((optionText, index) => {
                 const button = document.createElement('button');
-                button.className = `w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 font-medium text-slate-700 transition duration-150 flex items-center justify-between group`;
+                button.className = `w-full text-left p-2.5 text-xs dq-button border-gray-600 hover:border-yellow-400 flex items-center justify-between group`;
                 
                 button.innerHTML = `
                     <span>${index + 1}. ${optionText}</span>
-                    <span class="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-xs text-transparent group-hover:border-indigo-500">✓</span>
+                    <span class="text-xs text-gray-500 group-hover:text-yellow-400">▶</span>
                 `;
 
                 button.addEventListener('click', () => selectAnswer(index, button));
@@ -245,15 +263,14 @@
 
             if (selectedIndex === currentQuiz.answer) {
                 score++;
-                selectedButton.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-800 flex items-center justify-between";
-                selectedButton.querySelector('span:last-child').className = "w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs";
+                selectedButton.className = "w-full text-left p-2.5 text-xs dq-button border-green-400 bg-green-950 text-green-300 font-bold flex items-center justify-between";
+                selectedButton.querySelector('span:last-child').innerHTML = "✓ 正解";
             } else {
-                selectedButton.className = "w-full text-left p-4 rounded-xl border-2 border-rose-500 bg-rose-50 font-bold text-rose-800 flex items-center justify-between";
-                selectedButton.querySelector('span:last-child').innerHTML = "✕";
-                selectedButton.querySelector('span:last-child').className = "w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs";
+                selectedButton.className = "w-full text-left p-2.5 text-xs dq-button border-red-500 bg-red-950 text-red-300 font-bold flex items-center justify-between";
+                selectedButton.querySelector('span:last-child').innerHTML = "✕ 不正解";
 
                 const correctButton = allButtons[currentQuiz.answer];
-                correctButton.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-800 flex items-center justify-between";
+                correctButton.className = "w-full text-left p-2.5 text-xs dq-button border-green-400 bg-green-950 text-green-300 font-bold flex items-center justify-between";
             }
 
             nextBtn.classList.remove('hidden');
@@ -266,16 +283,12 @@
             const isClear = (score === QUESTIONS_PER_GAME);
 
             if (isClear) {
-                clearCount++;
-                localStorage.setItem('quiz_clear_count', clearCount);
-                clearCountElement.textContent = clearCount;
-
-                resultTitle.textContent = "🎉 GAME CLEAR! 🎉";
-                resultTitle.className = "text-3xl font-black mb-3 text-emerald-500 animate-bounce";
+                resultTitle.textContent = "🎉 試練クリア！ 🎉";
+                resultTitle.className = "text-lg font-bold text-yellow-300 animate-pulse";
                 
-                scoreText.innerHTML = `パーフェクト達成！<br><span class="text-4xl font-extrabold text-emerald-600">${score} / ${QUESTIONS_PER_GAME}</span> 正解`;
+                scoreText.innerHTML = `パーフェクト達成！<br><span class="text-2xl font-bold text-yellow-400 my-1 inline-block">${score} / ${QUESTIONS_PER_GAME}</span> 正解`;
                 rankText.textContent = "評価: Sランク (完全制覇)";
-                rankText.className = "inline-block px-4 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm mb-6";
+                rankText.className = "inline-block px-3 py-1 bg-yellow-950 border border-yellow-400 text-yellow-300 font-bold text-xs";
 
                 if (typeof confetti === 'function') {
                     confetti({
@@ -290,17 +303,17 @@
                 }, 1500);
 
             } else {
-                resultTitle.textContent = "💀 GAME OVER 💀";
-                resultTitle.className = "text-3xl font-black mb-3 text-rose-500";
+                resultTitle.textContent = "💀 試練失敗 💀";
+                resultTitle.className = "text-lg font-bold text-red-500";
                 
-                scoreText.innerHTML = `<span class="text-4xl font-extrabold text-slate-700">${score} / ${QUESTIONS_PER_GAME}</span> 正解`;
+                scoreText.innerHTML = `<span class="text-2xl font-bold text-gray-300 my-1 inline-block">${score} / ${QUESTIONS_PER_GAME}</span> 正解`;
                 
                 if (score >= 3) {
                     rankText.textContent = "評価: Aランク (あと少し！)";
-                    rankText.className = "inline-block px-4 py-1 bg-blue-100 text-blue-700 font-bold rounded-full text-sm mb-6";
+                    rankText.className = "inline-block px-3 py-1 bg-gray-900 border border-gray-500 text-gray-300 font-bold text-xs";
                 } else {
-                    rankText.textContent = "評価: Bランク (もう一度挑戦しよう)";
-                    rankText.className = "inline-block px-4 py-1 bg-slate-100 text-slate-700 font-bold rounded-full text-sm mb-6";
+                    rankText.textContent = "評価: Bランク (もう一度挑戦！)";
+                    rankText.className = "inline-block px-3 py-1 bg-gray-900 border border-gray-700 text-gray-400 font-bold text-xs";
                 }
             }
         }

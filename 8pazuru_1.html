@@ -3,268 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>8パズル (8 Puzzle)</title>
+  <title>8パズル の しれん</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
   <style>
-    /* --------------------------------------------------
-       全体・レイアウトのスタイル
-    -------------------------------------------------- */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none; /* テキスト選択を無効化（誤操作防止） */
-    }
-
     body {
-      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-      background-color: #f3f4f6;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 16px;
+      font-family: 'DotGothic16', monospace;
+      background-color: #000;
+      color: #fff;
+      image-rendering: pixelated;
+      user-select: none;
     }
 
-    /* ゲームのメインコンテナ */
-    .game-container {
-      background-color: #ffffff;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      max-width: 420px;
-      width: 100%;
-      text-align: center;
+    .dq-window {
+      background-color: #000;
+      border: 4px solid #fff;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px #000, 0 4px 10px rgba(0, 0, 0, 0.8);
     }
 
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 16px;
-      color: #1f2937;
+    .dq-button {
+      background-color: #000;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.1s ease;
     }
 
-    /* ステータス表示（移動回数） */
-    .status-bar {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-      background-color: #f9fafb;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      color: #4b5563;
+    .dq-button:active {
+      background-color: #222;
+      transform: scale(0.96);
     }
 
-    .status-item span {
-      color: #2563eb;
-      font-size: 1.2rem;
-    }
-
-    /* パズルボード (3x3グリッド) */
+    /* パズルボード (3x3) */
     .board {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      gap: 8px;
+      gap: 6px;
       width: 100%;
-      aspect-ratio: 1 / 1; /* 正方形を維持 */
-      background-color: #e5e7eb;
-      padding: 8px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      position: relative;
+      aspect-ratio: 1 / 1;
+      background-color: #fff;
+      border: 4px solid #fff;
+      padding: 4px;
+      border-radius: 4px;
     }
 
-    /* パズルの各タイル */
+    /* タイル */
     .tile {
-      background-color: #2563eb;
-      color: #ffffff;
-      font-size: 2rem;
+      background-color: #000;
+      color: #fff;
+      font-size: 1.8rem;
       font-weight: bold;
       display: flex;
       justify-content: center;
       align-items: center;
-      border-radius: 8px;
+      border: 2px solid #fff;
+      border-radius: 2px;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      position: relative;
+      transition: all 0.1s;
     }
 
-    /* 正しい位置に配置されたタイルのスタイル */
     .tile.correct {
-      background-color: #059669; /* 正解時は色をグリーンに変更 */
-      border: 2px solid #10b981;
+      border-color: #f59e0b;
+      color: #fbbf24;
     }
 
-    /* マウスホバー時の効果 */
-    .tile:hover:not(.empty) {
-      opacity: 0.9;
-      transform: scale(0.98);
-    }
-
-    /* 空白タイルのスタイル */
     .tile.empty {
-      background-color: transparent;
-      box-shadow: none;
-      cursor: default;
-    }
-
-    /* コントロールボタン群 */
-    .controls {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 12px 16px;
-      font-size: 1rem;
-      font-weight: bold;
+      background-color: #000;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s, opacity 0.2s;
-    }
-
-    .btn-primary {
-      background-color: #10b981;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background-color: #059669;
-    }
-
-    /* クリアメッセージ表示エリア */
-    .win-message {
-      display: none; /* 初期状態は非表示 */
-      margin-top: 16px;
-      padding: 12px;
-      background-color: #d1fae5;
-      color: #065f46;
-      border-radius: 8px;
-      font-weight: bold;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-5px); }
-      to { opacity: 1; transform: translateY(0); }
+      cursor: default;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen p-4 flex flex-col items-center justify-between">
 
-  <!-- ゲーム画面全体の構造 -->
-  <div class="game-container">
-    <h1>8パズル</h1>
+  <!-- ヘッダー -->
+  <header class="w-full max-w-sm flex justify-between items-center mb-2">
+    <button onclick="backToQuest()" class="dq-button px-3 py-1.5 text-xs border-yellow-400 text-yellow-300 flex items-center gap-1 font-bold">
+      ◀ ぼうけんのしょ に もどる
+    </button>
+    <span class="text-xs text-gray-400 font-bold">キーワード 1 の しれん</span>
+  </header>
 
-    <!-- スコア表示 -->
-    <div class="status-bar">
-      <div class="status-item">移動数: <span id="move-count">0</span></div>
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-sm text-center my-auto space-y-3">
+    <h1 class="text-xl font-bold text-yellow-400">8パズル の しれん</h1>
+    <p class="text-xs text-gray-300">すうじを じゅんばんに ならべて<br>パズルを かんせいさせよ！</p>
+
+    <div class="dq-window p-4">
+      <!-- ステータス表示 -->
+      <div class="flex justify-between items-center mb-3 text-xs border-b border-gray-700 pb-2">
+        <span class="text-gray-400">うごかした かず:</span>
+        <span id="move-count" class="text-yellow-400 text-base font-bold">0</span>
+      </div>
+
+      <!-- パズル盤面 -->
+      <div class="board mb-4" id="board"></div>
+
+      <!-- 操作ボタン -->
+      <button class="dq-button py-2 px-4 bg-gray-900 border-gray-400 text-xs w-full font-bold" id="reset-btn">
+        ↻ シャッフル / やりなおす
+      </button>
+
+      <!-- クリアメッセージ -->
+      <div id="win-message" class="hidden mt-3 p-2 bg-yellow-950 border-2 border-yellow-400 text-yellow-300 text-xs font-bold animate-pulse">
+        🎉 おめでとう！ パズルを かんせいさせた！
+      </div>
     </div>
+  </main>
 
-    <!-- パズル盤面 (3x3) -->
-    <div class="board" id="board"></div>
-
-    <!-- 操作ボタン -->
-    <div class="controls">
-      <button class="btn btn-primary" id="reset-btn">シャッフル / リセット</button>
-    </div>
-
-    <!-- クリア時に表示されるメッセージ -->
-    <div class="win-message" id="win-message">
-      🎉 おめでとうございます！パズルをクリアしました！
-    </div>
-  </div>
+  <footer class="text-[10px] text-gray-500 mt-2">
+    Quest of R - Mini Game
+  </footer>
 
   <script>
-    /* --------------------------------------------------
-       JavaScript: ゲームロジック (3x3 8パズル)
-    -------------------------------------------------- */
-
-    // 定数と状態変数
-    const GRID_SIZE = 3; // 3x3グリッド（8パズル）
-    let tiles = [];      // タイルの配置を表す配列（1〜8、0は空白）
-    let moves = 0;       // 移動回数
+    const GRID_SIZE = 3;
+    let tiles = [];
+    let moves = 0;
     let isGameActive = false;
 
-    // DOM要素の取得
     const boardElement = document.getElementById('board');
     const moveCountElement = document.getElementById('move-count');
     const winMessageElement = document.getElementById('win-message');
     const resetBtn = document.getElementById('reset-btn');
 
-    /**
-     * ゲームの初期化処理
-     */
-    function initGame() {
-      // 1〜8の数字と、空白を表す0で初期配列を作成（完成状態）
-      tiles = Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => (i + 1) % (GRID_SIZE * GRID_SIZE));
+    function backToQuest() {
+      window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
+    }
 
+    function initGame() {
+      tiles = Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => (i + 1) % (GRID_SIZE * GRID_SIZE));
       moves = 0;
       isGameActive = true;
-
       updateMovesDisplay();
-
-      winMessageElement.style.display = 'none';
-      boardElement.classList.remove('completed'); // 完成表示スタイルの解除
-
-      // 必ず解けるようにランダムにシャッフル
+      winMessageElement.classList.add('hidden');
       shuffleTiles();
-
-      // 画面に描画
       renderBoard();
     }
 
-    /**
-     * タイルをシャッフルする処理
-     * （ランダムに並べ替えると解けない盤面になる場合があるため、完成状態からランダムに有効な移動を繰り返す）
-     */
     function shuffleTiles() {
-      const shuffleSteps = 150; // シャッフルの手数
-
+      const shuffleSteps = 120;
       for (let i = 0; i < shuffleSteps; i++) {
         const emptyIndex = tiles.indexOf(0);
         const validMoves = getValidMoves(emptyIndex);
-        // 隣接するタイルの中からランダムに1つ選んで空白と入れ替える
         const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-
-        // 配列要素の交換
         [tiles[emptyIndex], tiles[randomMove]] = [tiles[randomMove], tiles[emptyIndex]];
       }
-
-      // シャッフル後、偶然クリア状態になっていた場合は再度シャッフル
       if (checkWin()) {
         shuffleTiles();
       }
     }
 
-    /**
-     * 指定したインデックスの空白（0）と交換可能な隣接インデックスを取得
-     * @param {number} emptyIndex - 空白タイルのインデックス
-     * @returns {number[]} 移動可能なタイルのインデックスリスト
-     */
     function getValidMoves(emptyIndex) {
       const row = Math.floor(emptyIndex / GRID_SIZE);
       const col = emptyIndex % GRID_SIZE;
       const validMoves = [];
-
-      if (row > 0) validMoves.push(emptyIndex - GRID_SIZE); // 上
-      if (row < GRID_SIZE - 1) validMoves.push(emptyIndex + GRID_SIZE); // 下
-      if (col > 0) validMoves.push(emptyIndex - 1); // 左
-      if (col < GRID_SIZE - 1) validMoves.push(emptyIndex + 1); // 右
-
+      if (row > 0) validMoves.push(emptyIndex - GRID_SIZE);
+      if (row < GRID_SIZE - 1) validMoves.push(emptyIndex + GRID_SIZE);
+      if (col > 0) validMoves.push(emptyIndex - 1);
+      if (col < GRID_SIZE - 1) validMoves.push(emptyIndex + 1);
       return validMoves;
     }
 
-    /**
-     * 盤面をHTMLとして描画する処理
-     */
     function renderBoard() {
       boardElement.innerHTML = '';
-
       tiles.forEach((value, index) => {
         const tileElement = document.createElement('div');
         tileElement.classList.add('tile');
@@ -272,52 +176,33 @@
         if (value === 0) {
           tileElement.classList.add('empty');
         } else {
-          // タイルが正しい位置（インデックス + 1 がタイルの数値と一致）にあるか確認
           if (value === index + 1) {
-            tileElement.classList.add('correct'); // 正解用のスタイルを適用
+            tileElement.classList.add('correct');
           }
-
-          // タイルに数字を設定
           tileElement.textContent = value;
-
-          // タイルクリック時のイベントを追加
           tileElement.addEventListener('click', () => handleTileClick(index));
         }
-
         boardElement.appendChild(tileElement);
       });
     }
 
-    /**
-     * タイルがクリックされたときの移動処理
-     * @param {number} index - クリックされたタイルのインデックス
-     */
     function handleTileClick(index) {
       if (!isGameActive) return;
-
       const emptyIndex = tiles.indexOf(0);
       const validMoves = getValidMoves(emptyIndex);
 
-      // クリックされたタイルが空白の隣にあれば移動
       if (validMoves.includes(index)) {
-        // タイルの位置を入れ替え
         [tiles[emptyIndex], tiles[index]] = [tiles[index], tiles[emptyIndex]];
-
         moves++;
         updateMovesDisplay();
         renderBoard();
 
-        // 勝利判定
         if (checkWin()) {
           handleWin();
         }
       }
     }
 
-    /**
-     * クリア判定（1〜8が順番に並んでいて最後が0になっているか）
-     * @returns {boolean} クリアしていればtrue
-     */
     function checkWin() {
       for (let i = 0; i < tiles.length - 1; i++) {
         if (tiles[i] !== i + 1) return false;
@@ -325,55 +210,36 @@
       return tiles[tiles.length - 1] === 0;
     }
 
-    /**
-     * クリア時の処理
-     */
     function handleWin() {
       isGameActive = false;
-      winMessageElement.style.display = 'block';
+      winMessageElement.classList.remove('hidden');
 
-      // クリア時に指定URLへ遷移
       setTimeout(() => {
-        window.location.href = "http://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=1";
-      }, 500);
+        window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=1";
+      }, 1200);
     }
 
-    /**
-     * 移動回数の表示更新
-     */
     function updateMovesDisplay() {
       moveCountElement.textContent = moves;
     }
 
-    // イベントリスナーの登録（リセットボタン）
     resetBtn.addEventListener('click', initGame);
 
-    // キーボード操作対応（矢印キーで操作可能）
     window.addEventListener('keydown', (e) => {
       if (!isGameActive) return;
-
       const emptyIndex = tiles.indexOf(0);
       const row = Math.floor(emptyIndex / GRID_SIZE);
       const col = emptyIndex % GRID_SIZE;
       let targetIndex = -1;
 
-      // キーの方向に合わせて移動するタイルを決定
-      if (e.key === 'ArrowUp' && row < GRID_SIZE - 1) {
-        targetIndex = emptyIndex + GRID_SIZE; // 下のタイルを上に動かす
-      } else if (e.key === 'ArrowDown' && row > 0) {
-        targetIndex = emptyIndex - GRID_SIZE; // 上のタイルを下に動かす
-      } else if (e.key === 'ArrowLeft' && col < GRID_SIZE - 1) {
-        targetIndex = emptyIndex + 1; // 右のタイルを左に動かす
-      } else if (e.key === 'ArrowRight' && col > 0) {
-        targetIndex = emptyIndex - 1; // 左のタイルを右に動かす
-      }
+      if (e.key === 'ArrowUp' && row < GRID_SIZE - 1) targetIndex = emptyIndex + GRID_SIZE;
+      else if (e.key === 'ArrowDown' && row > 0) targetIndex = emptyIndex - GRID_SIZE;
+      else if (e.key === 'ArrowLeft' && col < GRID_SIZE - 1) targetIndex = emptyIndex + 1;
+      else if (e.key === 'ArrowRight' && col > 0) targetIndex = emptyIndex - 1;
 
-      if (targetIndex !== -1) {
-        handleTileClick(targetIndex);
-      }
+      if (targetIndex !== -1) handleTileClick(targetIndex);
     });
 
-    // ページ読み込み時にゲームを開始
     window.onload = initGame;
   </script>
 </body>
