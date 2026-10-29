@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ブロックくずし の しれん</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'DotGothic16', monospace;
+      background-color: #000;
+      color: #fff;
+      image-rendering: pixelated;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .dq-window {
+      background-color: #000;
+      border: 4px solid #fff;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px #000, 0 4px 10px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .dq-button {
+      background-color: #000;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .dq-button:active {
+      background-color: #222;
+      transform: scale(0.96);
+    }
+
+    canvas {
+      display: block;
+      margin: auto;
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+      border: 2px solid #fff;
+      background: #000;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center justify-between">
+
+  <!-- ヘッダー -->
+  <header class="w-full max-w-sm flex justify-between items-center mb-2">
+    <button onclick="backToQuest()" class="dq-button px-3 py-1.5 text-xs border-yellow-400 text-yellow-300 flex items-center gap-1 font-bold">
+      ◀ ぼうけんのしょ に もどる
+    </button>
+    <span class="text-xs text-gray-400 font-bold">キーワード 5 の しれん</span>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-sm text-center my-auto space-y-3">
+    <h1 class="text-xl font-bold text-yellow-400">ブロックくずし の しれん</h1>
+    <p class="text-xs text-gray-300">すべての ブロックを はかいせよ！</p>
+
+    <div class="dq-window p-4">
+      <!-- ステータス表示 -->
+      <div class="flex justify-between items-center mb-3 text-xs border-b border-gray-700 pb-2">
+        <div>SCORE: <span id="score" class="text-yellow-400 font-bold">0</span></div>
+        <div>❤️ HP: <span id="lives" class="text-red-400 font-bold">3</span></div>
+      </div>
+
+      <!-- ゲームキャンバス -->
+      <canvas id="game" width="480" height="560" class="mb-3"></canvas>
+
+      <!-- リセットボタン -->
+      <button class="dq-button py-2 px-4 bg-gray-900 border-gray-400 text-xs w-full font-bold" onclick="restartGame()">
+        ↻ さいしょから やりなおす
+      </button>
+
+      <!-- クリア・オーバー メッセージ -->
+      <div id="msgBanner" class="hidden mt-3 p-2 bg-yellow-950 border-2 border-yellow-400 text-yellow-300 text-xs font-bold animate-pulse">
+        🎉 クリア！ おめでとう！ ぼうけんのしょへ もどります...
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-[10px] text-gray-500 mt-2">
+    Quest of R - Mini Game
+  </footer>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    let score = 0;
+    let lives = 3;
+    let isGameCleared = false;
+
+    let ball = {
+      x: 240,
+      y: 480,
+      dx: 4,
+      dy: -4,
+      radius: 8
+    };
+
+    let paddle = {
+      width: 90,
+      height: 12,
+      x: 195,
+      y: 520
+    };
+
+    const rows = 5;
+    const columns = 6;
+    const brickWidth = 65;
+    const brickHeight = 20;
+    const padding = 10;
+    const offsetTop = 40;
+    const offsetLeft = 22;
+
+    let bricks = [];
+
+    function backToQuest() {
+      window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
+    }
+
+    function restartGame() {
+      score = 0;
+      lives = 3;
+      isGameCleared = false;
+
+      document.getElementById("score").textContent = score;
+      document.getElementById("lives").textContent = lives;
+      document.getElementById("msgBanner").classList.add("hidden");
+
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height - 80;
+      ball.dx = 4;
+      ball.dy = -4;
+
+      paddle.x = canvas.width / 2 - paddle.width / 2;
+
+      bricks = [];
+      for (let r = 0; r < rows; r++) {
+        bricks[r] = [];
+        for (let c = 0; c < columns; c++) {
+          bricks[r][c] = {
+            x: offsetLeft + c * (brickWidth + padding),
+            y: offsetTop + r * (brickHeight + padding),
+            status: 1
+          };
+        }
+      }
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+    }
+
+    function drawBricks() {
+      const colors = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#60a5fa"];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < columns; c++) {
+          let b = bricks[r][c];
+          if (b.status === 1) {
+            ctx.fillStyle = colors[r % colors.length];
+            ctx.fillRect(b.x, b.y, brickWidth, brickHeight);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x, b.y, brickWidth, brickHeight);
+          }
+        }
+      }
+    }
+
+    function collisionDetection() {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < columns; c++) {
+          let b = bricks[r][c];
+          if (b.status === 1) {
+            if (
+              ball.x > b.x &&
+              ball.x < b.x + brickWidth &&
+              ball.y > b.y &&
+              ball.y < b.y + brickHeight
+            ) {
+              ball.dy = -ball.dy;
+              b.status = 0;
+              score++;
+              document.getElementById("score").textContent = score;
+
+              if (score === rows * columns && !isGameCleared) {
+                isGameCleared = true;
+                const msg = document.getElementById("msgBanner");
+                msg.textContent = "🎉 クリア！ おめでとう！ ぼうけんのしょへ もどります...";
+                msg.classList.remove("hidden");
+
+                setTimeout(() => {
+                  window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=5";
+                }, 1200);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function update() {
+      if (isGameCleared) return;
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // 左右の壁
+      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.dx = -ball.dx;
+      }
+
+      // 上の壁
+      if (ball.y - ball.radius < 0) {
+        ball.dy = -ball.dy;
+      }
+
+      // パドル当たり判定
+      if (
+        ball.y + ball.radius >= paddle.y &&
+        ball.y < paddle.y + paddle.height &&
+        ball.x >= paddle.x &&
+        ball.x <= paddle.x + paddle.width
+      ) {
+        ball.dy = -Math.abs(ball.dy);
+      }
+
+      // 落下処理
+      if (ball.y > canvas.height) {
+        lives--;
+        document.getElementById("lives").textContent = lives;
+
+        if (lives <= 0) {
+          const msg = document.getElementById("msgBanner");
+          msg.textContent = "💀 ざんねん！ ゲームオーバー！";
+          msg.classList.remove("hidden");
+          setTimeout(() => {
+            restartGame();
+          }, 1500);
+        } else {
+          ball.x = canvas.width / 2;
+          ball.y = canvas.height - 80;
+          ball.dx = 4;
+          ball.dy = -4;
+        }
+      }
+
+      collisionDetection();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function handleMove(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      const x = (clientX - rect.left) * scale;
+      paddle.x = x - paddle.width / 2;
+
+      if (paddle.x < 0) paddle.x = 0;
+      if (paddle.x + paddle.width > canvas.width) {
+        paddle.x = canvas.width - paddle.width;
+      }
+    }
+
+    canvas.addEventListener("mousemove", (e) => handleMove(e.clientX));
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      handleMove(e.touches[0].clientX);
+    }, { passive: false });
+
+    window.onload = () => {
+      restartGame();
+      gameLoop();
+    };
+  </script>
+</body>
+</html>
