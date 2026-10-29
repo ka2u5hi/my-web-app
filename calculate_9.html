@@ -48,9 +48,10 @@
         <!-- ゲームプレイ画面（初期状態は隠す hidden） -->
         <div id="game-screen" class="hidden space-y-6">
             
-            <!-- スコアと残り時間の表示バー -->
-            <div class="flex justify-between items-center bg-slate-50 px-4 py-2 rounded-lg text-slate-700 font-semibold">
-                <div>残り時間: <span id="timer" class="text-red-500 font-bold text-lg">30</span>秒</div>
+            <!-- スコアと残り時間・ライフの表示バー -->
+            <div class="flex justify-between items-center bg-slate-50 px-4 py-2 rounded-lg text-slate-700 font-semibold text-sm sm:text-base">
+                <div>残り時間: <span id="timer" class="text-red-500 font-bold text-lg">30</span>s</div>
+                <div>ミス: <span id="mistakes" class="text-red-600 font-bold text-lg">0</span>/4</div>
                 <div>スコア: <span id="score" class="text-blue-600 font-bold text-lg">0</span></div>
             </div>
 
@@ -100,6 +101,7 @@
         const optionsContainer = document.getElementById('options-container');
         
         const timerDisplay = document.getElementById('timer');
+        const mistakesDisplay = document.getElementById('mistakes');
         const scoreDisplay = document.getElementById('score');
         const questionDisplay = document.getElementById('question');
         const feedbackDisplay = document.getElementById('feedback');
@@ -108,6 +110,7 @@
 
         // --- ゲームのステータス変数 ---
         let score = 0;              // 現在のスコア
+        let mistakes = 0;           // ミスした回数
         let timeLeft = 30;          // 残り時間（秒）
         let timerInterval = null;   // タイマーの識別子
         let currentAnswer = 0;      // 現在の問題の正解値
@@ -116,8 +119,10 @@
         function startGame() {
             // 変数の初期化
             score = 0;
+            mistakes = 0;
             timeLeft = 30;
             scoreDisplay.textContent = score;
+            mistakesDisplay.textContent = mistakes;
             timerDisplay.textContent = timeLeft;
             feedbackDisplay.textContent = '';
             
@@ -136,7 +141,7 @@
 
                 // 残り時間が0になったらゲーム終了
                 if (timeLeft <= 0) {
-                    endGame();
+                    endGame('timeup');
                 }
             }, 1000);
         }
@@ -215,7 +220,15 @@
                 scoreDisplay.textContent = score;
                 showFeedback('⭕ 正解！', 'text-green-500');
             } else {
+                mistakes++;
+                mistakesDisplay.textContent = mistakes;
                 showFeedback(`❌ 残念！ 正解は ${currentAnswer}`, 'text-red-500');
+
+                // 4回間違えたら即ゲームオーバー
+                if (mistakes >= 4) {
+                    endGame('gameover');
+                    return;
+                }
             }
 
             // 次の問題へ
@@ -229,20 +242,29 @@
         }
 
         // --- ゲーム終了処理 ---
-        function endGame() {
+        function endGame(reason = 'timeup') {
             // タイマー停止
             clearInterval(timerInterval);
 
             // 最終スコア表示
             finalScoreDisplay.textContent = score;
 
-            // スコアに応じたメッセージ設定
-            if (score >= 20) {
-                resultMessage.textContent = '素晴らしい！計算マスターですね！ 🎉';
-            } else if (score >= 10) {
-                resultMessage.textContent = 'ナイスプレイ！とても素早いです！ 👍';
+            // 終了理由（タイムアップかゲームオーバーか）に応じたメッセージ設定
+            if (reason === 'gameover') {
+                const titleElement = resultScreen.querySelector('h2');
+                if (titleElement) titleElement.textContent = 'ゲームオーバー！';
+                resultMessage.textContent = '4回間違えてしまいました... もう一度チャレンジしよう！ 💥';
             } else {
-                resultMessage.textContent = 'お疲れ様でした！次回はもっと高得点を目指そう！ 💪';
+                const titleElement = resultScreen.querySelector('h2');
+                if (titleElement) titleElement.textContent = 'タイムアップ！';
+                
+                if (score >= 20) {
+                    resultMessage.textContent = '素晴らしい！計算マスターですね！ 🎉';
+                } else if (score >= 10) {
+                    resultMessage.textContent = 'ナイスプレイ！とても素早いです！ 👍';
+                } else {
+                    resultMessage.textContent = 'お疲れ様でした！次回はもっと高得点を目指そう！ 💪';
+                }
             }
 
             // 画面表示切り替え
