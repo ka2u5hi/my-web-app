@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カラーボール並べ替えパズル</title>
+    <!-- Tailwind CSS (デザイン作成用の軽量フレームワーク) を読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 基本設定 */
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        /* アニメーション処理 */
+        .ball {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 選択中のスタック（浮き上がる効果） */
+        .stack-selected {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            transform: translateY(-8px);
+        }
+
+        /* クリア時のポップアップアニメーション */
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
+
+    <!-- メインコンテナ -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center">
+        
+        <!-- タイトル -->
+        <h1 class="text-2xl sm:text-3xl font-bold text-center text-slate-700 mb-1">
+            カラーボールソート
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 text-center mb-6">
+            同じ色の玉を1つのスタックにまとめて整列させよう！<br>
+            空のスタックをうまく使うのがコツです。
+        </p>
+
+        <!-- ゲーム状態（手数・タイム・リセット） -->
+        <div class="w-full flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-8 border border-slate-200">
+            <!-- 手数 -->
+            <div class="text-center flex-1">
+                <span class="text-xs text-slate-400 block font-semibold">手数</span>
+                <span id="move-count" class="text-xl font-bold text-indigo-600">0</span>
+            </div>
+            
+            <!-- 1手戻るボタン -->
+            <div class="text-center flex-1 border-x border-slate-200 px-2">
+                <button id="undo-btn" class="w-full bg-slate-100 text-slate-400 text-xs font-bold py-2 px-2 rounded-lg border border-slate-200 transition flex flex-col items-center justify-center cursor-not-allowed" disabled>
+                    <span>↩ 1手戻る</span>
+                    <span id="undo-count" class="text-[10px] opacity-80">(残り3回)</span>
+                </button>
+            </div>
+
+            <!-- リセットボタン -->
+            <div class="text-center flex-1 pl-2">
+                <button id="reset-btn" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold py-2.5 px-2 rounded-lg border border-indigo-200 transition">
+                    やり直す
+                </button>
+            </div>
+        </div>
+
+        <!-- スタック（筒）エリア -->
+        <div id="game-container" class="w-full flex justify-around items-end h-64 px-2 mb-6">
+            <!-- JavaScriptで4つのスタックを生成します -->
+        </div>
+
+        <!-- ルールヒント -->
+        <div class="text-xs text-slate-400 bg-slate-50 p-3 rounded-xl w-full">
+            💡 <strong>遊び方:</strong><br>
+            1. タップして上の玉を掴みます。<br>
+            2. 移動先のスタックをタップして入れます。<br>
+            3. ※同じ色の玉の上か、空のスタックにのみ移動できます（最大4個まで）。
+        </div>
+    </div>
+
+    <!-- クリアモーダル -->
+    <div id="clear-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl p-6 text-center shadow-2xl max-w-xs w-full animate-pop">
+            <div class="text-5xl mb-3">🎉</div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">クリアおめでとう！</h2>
+            <p class="text-sm text-slate-600 mb-4">見事に色を揃えられました！</p>
+            
+            <div class="bg-slate-50 p-3 rounded-lg mb-5 text-left text-sm space-y-1">
+                <p class="flex justify-between"><span class="text-slate-500">達成手数:</span> <span id="final-moves" class="font-bold text-indigo-600">0回</span></p>
+            </div>
+
+            <button id="modal-close-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition">
+                もう一度遊ぶ
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // ==========================================
+        // 定数・ゲーム状態の定義
+        // ==========================================
+        const STACK_CAPACITY = 4; // スタック1つの最大容量
+        const MAX_UNDO = 3;       // アンドゥの上限回数
+        const COLORS = [
+            { id: 'red', name: '赤', bg: 'bg-rose-500', border: 'border-rose-600' },
+            { id: 'blue', name: '青', bg: 'bg-sky-500', border: 'border-sky-600' },
+            { id: 'green', name: '緑', bg: 'bg-emerald-500', border: 'border-emerald-600' }
+        ];
+
+        let stacks = [];          // 4つのスタック（各配列は玉の色配列）
+        let selectedStackIndex = null; // 選択中のスタックインデックス (nullは未選択)
+        let moves = 0;           // 手数
+        let history = [];        // 盤面の履歴 (1手戻る用)
+        let undoRemaining = MAX_UNDO; // 残り1手戻る回数
+
+        // DOM要素
+        const gameContainer = document.getElementById('game-container');
+        const moveCountElement = document.getElementById('move-count');
+        const undoBtn = document.getElementById('undo-btn');
+        const undoCountElement = document.getElementById('undo-count');
+        const resetBtn = document.getElementById('reset-btn');
+        const clearModal = document.getElementById('clear-modal');
+        const finalMovesElement = document.getElementById('final-moves');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // ==========================================
+        // 初期化処理
+        // ==========================================
+        window.onload = () => {
+            initGame();
+        };
+
+        resetBtn.addEventListener('click', initGame);
+        undoBtn.addEventListener('click', handleUndo);
+        modalCloseBtn.addEventListener('click', () => {
+            clearModal.classList.add('hidden');
+            initGame();
+        });
+
+        function initGame() {
+            moves = 0;
+            history = [];
+            undoRemaining = MAX_UNDO;
+            selectedStackIndex = null;
+            
+            moveCountElement.textContent = '0';
+            updateUndoButtonUI();
+
+            // ランダムだがクリア可能な初期盤面を生成
+            stacks = generateSolvablePuzzle();
+
+            // 画面描画
+            render();
+        }
+
+        // ==========================================
+        // UI更新関数（アンドゥボタンの状態管理）
+        // ==========================================
+        function updateUndoButtonUI() {
+            undoCountElement.textContent = `(残り${undoRemaining}回)`;
+
+            // 履歴があり、かつ回数が残っている場合のみボタンを活性化
+            if (history.length > 0 && undoRemaining > 0) {
+                undoBtn.disabled = false;
+                undoBtn.className = "w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold py-2 px-2 rounded-lg border border-indigo-200 transition flex flex-col items-center justify-center cursor-pointer shadow-sm";
+            } else {
+                undoBtn.disabled = true;
+                undoBtn.className = "w-full bg-slate-100 text-slate-400 text-xs font-bold py-2 px-2 rounded-lg border border-slate-200 transition flex flex-col items-center justify-center cursor-not-allowed opacity-60";
+            }
+        }
+
+        // ==========================================
+        // 1手戻る処理
+        // ==========================================
+        function handleUndo() {
+            if (history.length === 0 || undoRemaining <= 0) return;
+
+            // 最後の状態を履歴から復元（ディープコピー）
+            const previousState = history.pop();
+            stacks = JSON.parse(JSON.stringify(previousState));
+
+            undoRemaining--;
+            moves--;
+            moveCountElement.textContent = moves;
+            selectedStackIndex = null;
+
+            updateUndoButtonUI();
+            render();
+        }
+
+        // ==========================================
+        // パズル生成ロジック
+        // ==========================================
+        function generateSolvablePuzzle() {
+            // 3色の玉を各4個ずつ作成（計12個）
+            let allBalls = [];
+            COLORS.forEach(color => {
+                for (let i = 0; i < STACK_CAPACITY; i++) {
+                    allBalls.push(color.id);
+                }
+            });
+
+            // シャッフル
+            for (let i = allBalls.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allBalls[i], allBalls[j]] = [allBalls[j], allBalls[i]];
+            }
+
+            // 4つのスタックに割り当て（1~3番目は4個ずつ、4番目は空）
+            let newStacks = [[], [], [], []];
+            for (let i = 0; i < 12; i++) {
+                const stackIndex = Math.floor(i / STACK_CAPACITY);
+                newStacks[stackIndex].push(allBalls[i]);
+            }
+
+            // 偶然最初から揃ってしまっている場合は再生成
+            if (checkWinCondition(newStacks)) {
+                return generateSolvablePuzzle();
+            }
+
+            return newStacks;
+        }
+
+        // ==========================================
+        // 描画処理
+        // ==========================================
+        function render() {
+            gameContainer.innerHTML = '';
+
+            stacks.forEach((stack, stackIndex) => {
+                // スタック（筒）のDOMエレメント
+                const stackEl = document.createElement('div');
+                stackEl.className = `w-16 sm:w-20 h-56 bg-slate-100/80 border-4 border-slate-300 rounded-b-2xl flex flex-col-reverse items-center justify-start p-1 cursor-pointer transition-all duration-200 ${
+                    selectedStackIndex === stackIndex ? 'stack-selected' : 'hover:border-slate-400'
+                }`;
+
+                // タップイベント登録
+                stackEl.addEventListener('click', () => handleStackClick(stackIndex));
+
+                // 玉の描画（下の玉から順に積み上げる）
+                stack.forEach((colorId, ballIndex) => {
+                    const colorInfo = COLORS.find(c => c.id === colorId);
+                    const ballEl = document.createElement('div');
+                    
+                    // 選択されたスタックの「一番上の玉」だけ少し上に浮かせる演出
+                    const isTopBall = ballIndex === stack.length - 1;
+                    const isSelectedTop = selectedStackIndex === stackIndex && isTopBall;
+
+                    ballEl.className = `w-12 h-12 sm:w-14 sm:h-14 rounded-full ${colorInfo.bg} border-b-4 ${colorInfo.border} shadow-md my-0.5 ball transition-transform ${
+                        isSelectedTop ? '-translate-y-3' : ''
+                    }`;
+
+                    stackEl.appendChild(ballEl);
+                });
+
+                gameContainer.appendChild(stackEl);
+            });
+        }
+
+        // ==========================================
+        // スタックタップ時のアクション処理
+        // ==========================================
+        function handleStackClick(index) {
+            // 何も選択していない状態
+            if (selectedStackIndex === null) {
+                // 玉があるスタックだけ選択可能
+                if (stacks[index].length > 0) {
+                    selectedStackIndex = index;
+                    render();
+                }
+            } 
+            // すでにスタックが選択されている状態
+            else {
+                const fromIndex = selectedStackIndex;
+                const toIndex = index;
+
+                // 同じスタックをタップした場合は選択解除
+                if (fromIndex === toIndex) {
+                    selectedStackIndex = null;
+                    render();
+                    return;
+                }
+
+                // 移動ルール判定と移動実行
+                if (canMove(fromIndex, toIndex)) {
+                    // 現在の盤面を履歴に保存（深層コピー）
+                    history.push(JSON.parse(JSON.stringify(stacks)));
+
+                    // 玉を移動
+                    const ball = stacks[fromIndex].pop();
+                    stacks[toIndex].push(ball);
+
+                    moves++;
+                    moveCountElement.textContent = moves;
+
+                    selectedStackIndex = null;
+                    
+                    updateUndoButtonUI();
+                    render();
+
+                    // クリアチェック
+                    if (checkWinCondition(stacks)) {
+                        handleWin();
+                    }
+                } else {
+                    // 移動できない場合は選択対象を新しいスタックに変更（玉がある場合）
+                    if (stacks[toIndex].length > 0) {
+                        selectedStackIndex = toIndex;
+                    } else {
+                        selectedStackIndex = null;
+                    }
+                    render();
+                }
+            }
+        }
+
+        // ==========================================
+        // 移動ルール判定
+        // ==========================================
+        function canMove(fromIndex, toIndex) {
+            const fromStack = stacks[fromIndex];
+            const toStack = stacks[toIndex];
+
+            // 移動元が空なら移動不可
+            if (fromStack.length === 0) return false;
+
+            // 移動先がいっぱい（容量4）なら移動不可
+            if (toStack.length >= STACK_CAPACITY) return false;
+
+            // 移動先が空なら移動可能
+            if (toStack.length === 0) return true;
+
+            // 移動先の「一番上の玉」と移動元の「一番上の玉」が同じ色なら移動可能
+            const topFromBall = fromStack[fromStack.length - 1];
+            const topToBall = toStack[toStack.length - 1];
+
+            return topFromBall === topToBall;
+        }
+
+        // ==========================================
+        // タイマー処理
+        // ==========================================
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                timerElement.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        // ==========================================
+        // クリア判定
+        // ==========================================
+        function checkWinCondition(currentStacks) {
+            return currentStacks.every(stack => {
+                // 空のスタックはクリア条件を満たす
+                if (stack.length === 0) return true;
+
+                // 4個入っていない場合は未完成
+                if (stack.length !== STACK_CAPACITY) return false;
+
+                // 4個すべて同じ色かチェック
+                const firstColor = stack[0];
+                return stack.every(ball => ball === firstColor);
+            });
+        }
+
+        // ==========================================
+        // クリア時処理
+        // ==========================================
+        function handleWin() {
+            finalMovesElement.textContent = `${moves}回`;
+
+            setTimeout(() => {
+                clearModal.classList.remove('hidden');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
