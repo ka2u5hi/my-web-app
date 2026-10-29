@@ -296,53 +296,57 @@
             }
         }
 
-        // --- データ設定（1対1対応のコード形式） ---
+        // --- データ設定（キーワード1つにつきゲーム2つ、ゲームごとにQRコード1対1） ---
         const spotsData = [
             {
                 id: 1,
                 name: "キーワード 1",
                 char: "文",
-                code: "SPOT_1",
+                code: ["SPOT_1_1", "SPOT_1_2"], // どちらのQRでもキーワード1の進捗になる
                 urls: [
-                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
-                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                    { code: "SPOT_1_1", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
+                    { code: "SPOT_1_2", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
                 ]
             },
             {
                 id: 2,
                 name: "キーワード 2",
                 char: "化",
-                code: "SPOT_2",
+                code: ["SPOT_2_1", "SPOT_2_2"],
                 urls: [
-                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
-                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+                    { code: "SPOT_2_1", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
+                    { code: "SPOT_2_2", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
                 ]
             },
             {
                 id: 3,
                 name: "キーワード 3",
                 char: "祭",
-                code: "SPOT_3",
+                code: ["SPOT_3_1", "SPOT_3_2"],
                 urls: [
-                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
-                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                    { code: "SPOT_3_1", title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
+                    { code: "SPOT_3_2", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
                 ]
             },
             {
                 id: 4,
                 name: "キーワード 4",
                 char: "ク",
-                code: "SPOT_4",
+                code: ["SPOT_4_1", "SPOT_4_2"],
                 urls: [
-                    { title: "4択クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" }
+                    { code: "SPOT_4_1", title: "4択常識クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" },
+                    { code: "SPOT_4_2", title: "ゲームタイトル 2", url: "https://example.com/game_4_2" }
                 ]
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "エ",
-                code: "SPOT_5",
-                urls: []
+                code: ["SPOT_5_1", "SPOT_5_2"],
+                urls: [
+                    { code: "SPOT_5_1", title: "ゲームタイトル 1", url: "https://example.com/game_5_1" },
+                    { code: "SPOT_5_2", title: "ゲームタイトル 2", url: "https://example.com/game_5_2" }
+                ]
             },
         ];
 
@@ -481,7 +485,7 @@
                     </div>
                     <span class="text-xs font-bold">${spot.name}</span>
                     <span class="text-[10px] ${isFound ? 'text-yellow-400' : 'text-gray-600'}">
-                        ${isFound ? 'てに入れた' : 'みふういん'}
+                        ${isFound ? 'てに入れた' : 'ふういん'}
                     </span>
                 `;
 
@@ -510,15 +514,20 @@
             }
         }
 
-        // スキャン後の処理（1対1対応判定）
+        // スキャン後の処理（ゲームとQRが1対1対応）
         function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
             const trimmedCode = (scannedCode || "").trim();
 
-            // シンプルな1対1比較
-            const spot = spotsData.find(s => s.code === trimmedCode);
+            // スキャンしたQRコードに対応するスポット（キーワード）を探す
+            const spot = spotsData.find(s => {
+                if (Array.isArray(s.code)) {
+                    return s.code.includes(trimmedCode);
+                }
+                return s.code === trimmedCode;
+            });
 
             if (!spot) {
                 playSe('error');
@@ -540,8 +549,10 @@
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
             } else if (spot.urls && spot.urls.length > 0) {
+                // スキャンしたQRコードに1対1で対応する特定のゲームを探す
+                const matchedGame = spot.urls.find(g => g.code === trimmedCode);
                 playSe('fanfare');
-                openGamePortal(spot);
+                openGamePortal(spot, matchedGame);
             } else {
                 foundSpotIds.push(spot.id);
                 saveProgress();
@@ -559,24 +570,24 @@
             }
         }
 
-        // 旅の扉（ミニゲーム案内）
-        function openGamePortal(spot) {
+        // 旅の扉（スキャンしたQRに対応する1つのゲームを表示）
+        function openGamePortal(spot, targetGame) {
             document.getElementById('portal-spot-name').textContent = spot.name;
             document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、きーわーどの【 もじ 】を てにいれよう！`;
 
             const btnContainer = document.getElementById('portal-buttons-container');
             btnContainer.innerHTML = '';
 
-            spot.urls.forEach((game) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
-                btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
-                btn.onclick = () => {
-                    playSe('click');
-                    window.location.href = game.url;
-                };
-                btnContainer.appendChild(btn);
-            });
+            // スキャンされたQRコードに対応するゲームボタンのみを表示（1対1対応）
+            const gameToDisplay = targetGame || spot.urls[0];
+            const btn = document.createElement('button');
+            btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
+            btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${gameToDisplay.title} に いどむ`;
+            btn.onclick = () => {
+                playSe('click');
+                window.location.href = gameToDisplay.url;
+            };
+            btnContainer.appendChild(btn);
 
             document.getElementById('game-portal-modal').classList.remove('hidden');
         }

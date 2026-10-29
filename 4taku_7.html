@@ -23,6 +23,11 @@
         
         <!-- ヘッダーエリア -->
         <div class="bg-indigo-600 p-6 text-white text-center relative">
+            <!-- ギブアップ（やめる）ボタン -->
+            <button onclick="location.href='https://ka2u5hi.github.io/my-web-app/mainadmini.html'" class="absolute top-4 left-4 bg-indigo-800 hover:bg-indigo-900 text-white text-xs px-3 py-1.5 rounded-lg border border-indigo-400 flex items-center gap-1 shadow transition">
+                ← やめる
+            </button>
+
             <h1 class="text-2xl font-bold tracking-wide">4択常識クイズ</h1>
             <p class="text-indigo-200 text-sm mt-1">全5問パーフェクトでゲームクリア！</p>
             
@@ -103,9 +108,7 @@
 
     <!-- JavaScriptロジック -->
     <script>
-        // ==========================================
         // クイズ問題データ（全10問のプール）
-        // ==========================================
         const quizDataPool = [
             {
                 question: "工業高校などで取得を推進されている、検定や資格の取得実績に応じて生徒を表彰する制度はどれ？",
@@ -159,16 +162,13 @@
             }
         ];
 
-        // 定数設定
-        const QUESTIONS_PER_GAME = 5; // 1回のゲームでの出題数
+        const QUESTIONS_PER_GAME = 5;
 
-        // 状態管理用変数
-        let activeQuizData = []; // 今回出題される5問
-        let currentQuestionIndex = 0; // 現在の問題インデックス
-        let score = 0; // 正解数
-        let clearCount = parseInt(localStorage.getItem('quiz_clear_count') || '0'); // 通算クリア回数
+        let activeQuizData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let clearCount = parseInt(localStorage.getItem('quiz_clear_count') || '0');
 
-        // DOM要素の取得
         const startScreen = document.getElementById('start-screen');
         const quizScreen = document.getElementById('quiz-screen');
         const resultScreen = document.getElementById('result-screen');
@@ -188,10 +188,8 @@
         const rankText = document.getElementById('rank-badge');
         const clearCountElement = document.getElementById('clear-count');
 
-        // 初頭表示の初期化
         clearCountElement.textContent = clearCount;
 
-        // 配列をランダムにシャッフルする関数（Fisher-Yatesアルゴリズム）
         function shuffleArray(array) {
             const shuffled = [...array];
             for (let i = shuffled.length - 1; i > 0; i--) {
@@ -201,14 +199,11 @@
             return shuffled;
         }
 
-        // ゲームの開始・初期化
         function startGame() {
-            // 問題プールからランダムで5問抽出
             activeQuizData = shuffleArray(quizDataPool).slice(0, QUESTIONS_PER_GAME);
             currentQuestionIndex = 0;
             score = 0;
 
-            // 画面の切り替え
             startScreen.classList.add('hidden');
             resultScreen.classList.add('hidden');
             quizScreen.classList.remove('hidden');
@@ -216,19 +211,15 @@
             loadQuestion();
         }
 
-        // 問題の読み込みとUI描画
         function loadQuestion() {
             const currentQuiz = activeQuizData[currentQuestionIndex];
             
-            // 進捗状況の更新
             questionNumber.textContent = `第 ${currentQuestionIndex + 1} 問 / 全 ${QUESTIONS_PER_GAME} 問`;
             scoreCounter.textContent = `正解数: ${score}`;
             progressBar.style.width = `${((currentQuestionIndex + 1) / QUESTIONS_PER_GAME) * 100}%`;
 
-            // 問題文の設定
             questionText.textContent = currentQuiz.question;
 
-            // 選択肢のクリアと生成
             optionsContainer.innerHTML = '';
             nextBtn.classList.add('hidden');
 
@@ -246,44 +237,35 @@
             });
         }
 
-        // 回答選択時の処理
         function selectAnswer(selectedIndex, selectedButton) {
             const currentQuiz = activeQuizData[currentQuestionIndex];
             const allButtons = optionsContainer.querySelectorAll('button');
 
-            // 全てのボタンを無効化（2重押し防止）
             allButtons.forEach(btn => btn.disabled = true);
 
-            // 正否判定
             if (selectedIndex === currentQuiz.answer) {
-                // 正解時
                 score++;
                 selectedButton.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-800 flex items-center justify-between";
                 selectedButton.querySelector('span:last-child').className = "w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs";
             } else {
-                // 不正解時
                 selectedButton.className = "w-full text-left p-4 rounded-xl border-2 border-rose-500 bg-rose-50 font-bold text-rose-800 flex items-center justify-between";
                 selectedButton.querySelector('span:last-child').innerHTML = "✕";
                 selectedButton.querySelector('span:last-child').className = "w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs";
 
-                // 正解の選択肢を緑色で強調表示
                 const correctButton = allButtons[currentQuiz.answer];
                 correctButton.className = "w-full text-left p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-800 flex items-center justify-between";
             }
 
-            // 「次へ」ボタンを表示
             nextBtn.classList.remove('hidden');
         }
 
-        // 結果の計算と表示
         function showResult() {
             quizScreen.classList.add('hidden');
             resultScreen.classList.remove('hidden');
 
-            const isClear = (score === QUESTIONS_PER_GAME); // 5問中5問正解でクリア
+            const isClear = (score === QUESTIONS_PER_GAME);
 
             if (isClear) {
-                // 【全問正解クリアの場合】
                 clearCount++;
                 localStorage.setItem('quiz_clear_count', clearCount);
                 clearCountElement.textContent = clearCount;
@@ -295,7 +277,6 @@
                 rankText.textContent = "評価: Sランク (完全制覇)";
                 rankText.className = "inline-block px-4 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-sm mb-6";
 
-                // 紙吹雪エフェクトの実行
                 if (typeof confetti === 'function') {
                     confetti({
                         particleCount: 100,
@@ -304,16 +285,11 @@
                     });
                 }
 
-                // ==========================================
-                // ★ クリア時の指定URLへのリダイレクト処理 ★
-                // 演出を見せるため1.5秒（1500ミリ秒）後にリダイレクトします
-                // ==========================================
                 setTimeout(function() {
-                    window.location.href = "http://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=4";
+                    window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=4";
                 }, 1500);
 
             } else {
-                // 【失敗（ゲームオーバー）の場合】
                 resultTitle.textContent = "💀 GAME OVER 💀";
                 resultTitle.className = "text-3xl font-black mb-3 text-rose-500";
                 
@@ -329,7 +305,6 @@
             }
         }
 
-        // イベントリスナーの登録
         startBtn.addEventListener('click', startGame);
         restartBtn.addEventListener('click', startGame);
 
