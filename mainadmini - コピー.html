@@ -296,51 +296,47 @@
             }
         }
 
-        // --- データ設定（1対1対応のコード形式） ---
+        // --- データ設定（キーワード1つにつきゲーム2つ、ゲームごとにQRコード1対1） ---
         const spotsData = [
             {
                 id: 1,
                 name: "キーワード 1",
-                char: "文",
-                code: "SPOT_1",
+                char: "誠",
+                code: ["SPOT_1_1", "SPOT_1_2"], // どちらのQRでもキーワード1の進捗になる
                 urls: [
-                    { title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
-                    { title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                    { code: "SPOT_1_1", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
+                    { code: "SPOT_1_2", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
                 ]
             },
             {
                 id: 2,
                 name: "キーワード 2",
-                char: "化",
-                code: "SPOT_2",
+                char: "実",
+                code: ["SPOT_2_1", "SPOT_2_2"],
                 urls: [
-                    { title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
-                    { title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+                    { code: "SPOT_2_1", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
+                    { code: "SPOT_2_2", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
                 ]
             },
             {
                 id: 3,
                 name: "キーワード 3",
-                char: "祭",
-                code: "SPOT_3",
+                char: "信",
+                code: ["SPOT_3_1", "SPOT_3_2"],
                 urls: [
-                    { title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
-                    { title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                    { code: "SPOT_3_1", title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
+                    { code: "SPOT_3_2", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
                 ]
             },
             {
                 id: 4,
                 name: "キーワード 4",
-                char: "ク",
-                code: "SPOT_4",
-                urls: []
-            },
-            {
-                id: 5,
-                name: "キーワード 5",
-                char: "エ",
-                code: "SPOT_5",
-                urls: []
+                char: "頼",
+                code: ["SPOT_4_1", "SPOT_4_2"],
+                urls: [
+                    { code: "SPOT_4_1", title: "4択常識クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" },
+                    { code: "SPOT_4_2", title: "ブロック崩し のしれん", url: "https://ka2u5hi.github.io/my-web-app/braek_8.html" }
+                ]
             },
         ];
 
@@ -479,7 +475,7 @@
                     </div>
                     <span class="text-xs font-bold">${spot.name}</span>
                     <span class="text-[10px] ${isFound ? 'text-yellow-400' : 'text-gray-600'}">
-                        ${isFound ? 'てに入れた' : 'みふういん'}
+                        ${isFound ? 'てに入れた' : 'ふういん'}
                     </span>
                 `;
 
@@ -508,15 +504,20 @@
             }
         }
 
-        // スキャン後の処理（1対1対応判定）
+        // スキャン後の処理（ゲームとQRが1対1対応）
         function handleSpotDiscovered(scannedCode) {
             if (isScannerProcessing) return;
             isScannerProcessing = true;
 
             const trimmedCode = (scannedCode || "").trim();
 
-            // シンプルな1対1比較
-            const spot = spotsData.find(s => s.code === trimmedCode);
+            // スキャンしたQRコードに対応するスポット（キーワード）を探す
+            const spot = spotsData.find(s => {
+                if (Array.isArray(s.code)) {
+                    return s.code.includes(trimmedCode);
+                }
+                return s.code === trimmedCode;
+            });
 
             if (!spot) {
                 playSe('error');
@@ -538,8 +539,10 @@
                     [{ text: "とじる", class: "dq-button py-1 px-4 text-white bg-gray-800", action: resumeScanner }]
                 );
             } else if (spot.urls && spot.urls.length > 0) {
+                // スキャンしたQRコードに1対1で対応する特定のゲームを探す
+                const matchedGame = spot.urls.find(g => g.code === trimmedCode);
                 playSe('fanfare');
-                openGamePortal(spot);
+                openGamePortal(spot, matchedGame);
             } else {
                 foundSpotIds.push(spot.id);
                 saveProgress();
@@ -557,24 +560,24 @@
             }
         }
 
-        // 旅の扉（ミニゲーム案内）
-        function openGamePortal(spot) {
+        // 旅の扉（スキャンしたQRに対応する1つのゲームを表示）
+        function openGamePortal(spot, targetGame) {
             document.getElementById('portal-spot-name').textContent = spot.name;
             document.getElementById('portal-description').textContent = `「${spot.name}」の しれんに いどみ、きーわーどの【 もじ 】を てにいれよう！`;
 
             const btnContainer = document.getElementById('portal-buttons-container');
             btnContainer.innerHTML = '';
 
-            spot.urls.forEach((game) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
-                btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${game.title} に いどむ`;
-                btn.onclick = () => {
-                    playSe('click');
-                    window.location.href = game.url;
-                };
-                btnContainer.appendChild(btn);
-            });
+            // スキャンされたQRコードに対応するゲームボタンのみを表示（1対1対応）
+            const gameToDisplay = targetGame || spot.urls[0];
+            const btn = document.createElement('button');
+            btn.className = "w-full dq-button py-2.5 bg-yellow-500 text-black font-bold text-xs hover:bg-yellow-400 border-white flex items-center justify-center gap-2 mb-1.5";
+            btn.innerHTML = `<i class="fa-solid fa-gamepad"></i> ${gameToDisplay.title} に いどむ`;
+            btn.onclick = () => {
+                playSe('click');
+                window.location.href = gameToDisplay.url;
+            };
+            btnContainer.appendChild(btn);
 
             document.getElementById('game-portal-modal').classList.remove('hidden');
         }
@@ -613,20 +616,23 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
+            // iPhone標準カメラ風：枠に合わせなくても画面の広範囲（約80%）で即座に検知できるように拡大
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgePercentage = 0.7;
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+                // 画面幅の85%まで検知枠を広げて、画角に入った瞬間に反応するように改善
+                const qrboxSize = Math.floor(minEdgeSize * 0.85);
                 return {
-                    width: qrboxSize,
-                    height: qrboxSize
+                    width: Math.max(220, qrboxSize),
+                    height: Math.max(220, qrboxSize)
                 };
             };
 
             const config = {
-                fps: 10,
+                fps: 25, // フレームレートを上げてレスポンスを高速化（iPhoneの標準カメラ並みの反応速度）
                 qrbox: qrboxFunction,
-                aspectRatio: 1.0
+                videoConstraints: {
+                    facingMode: "environment"
+                }
             };
 
             html5QrCode.start(
@@ -641,7 +647,20 @@
             }).catch(err => {
                 console.error("Camera error:", err);
                 if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
-                document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                
+                // Permission Denied やセキュリティ制限によるエラーハンドリング
+                if (err && (err.name === 'NotAllowedError' || String(err).includes('NotAllowedError'))) {
+                    document.getElementById('scanner-status').textContent = "※かめらの きょかが きょひ されました。 ぶらうざの 設定で かめらを きょか してください。";
+                    showCustomModal(
+                        "fa-lock",
+                        "かめら の きょか が つかわれていません",
+                        "ブラウザの カメラ権限が「ブロック」されているか、通信が保護されていません(HTTPSが必要)。\nアドレスバーの【カギマーク】または【AA】をタップして、カメラアクセスを「許可」に変更したあと再起動してください。",
+                        [{ text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold", action: startScanner }]
+                    );
+                } else {
+                    document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                }
+                
                 if (retryBtn) retryBtn.classList.remove('hidden');
             });
         }
