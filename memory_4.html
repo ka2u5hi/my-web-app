@@ -120,12 +120,12 @@
   <!-- メインコンテンツ -->
   <main class="w-full max-w-sm text-center my-auto space-y-3">
     <h1 class="text-xl font-bold text-yellow-400">しんけいすいじゃく の しれん</h1>
-    <p class="text-xs text-gray-300">おなじ すうじの ペアを すべて みつけよ！</p>
+    <p class="text-xs text-gray-300">30ターンいない に ペアを すべて みつけよ！</p>
 
     <div class="dq-window p-4">
       <!-- ステータス表示 -->
       <div class="flex justify-between items-center mb-3 text-xs border-b border-gray-700 pb-2">
-        <div>ターンすう: <span id="turns" class="text-yellow-400 font-bold">0</span></div>
+        <div>ターンすう: <span id="turns" class="text-yellow-400 font-bold">0</span> / <span class="text-gray-400">30</span></div>
         <div>そろったペア: <span id="pairs" class="text-yellow-400 font-bold">0</span> / 8</div>
       </div>
 
@@ -141,6 +141,11 @@
       <div id="win-message" class="hidden mt-3 p-2 bg-yellow-950 border-2 border-yellow-400 text-yellow-300 text-xs font-bold animate-pulse">
         🎉 クリア！ おめでとう！ ぼうけんのしょへ もどります...
       </div>
+
+      <!-- ゲームオーバーメッセージ -->
+      <div id="lose-message" class="hidden mt-3 p-2 bg-red-950 border-2 border-red-500 text-red-300 text-xs font-bold">
+        💀 ターンオーバー... さいしょから やりなおしてね！
+      </div>
     </div>
   </main>
 
@@ -150,6 +155,7 @@
 
   <script>
     const NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const MAX_TURNS = 30; // 30ターン以内に制限を変更
 
     let firstCard = null;
     let secondCard = null;
@@ -182,6 +188,7 @@
       updateStatus();
 
       document.getElementById('win-message').classList.add('hidden');
+      document.getElementById('lose-message').classList.add('hidden');
 
       const cardValues = shuffle([...NUMBERS, ...NUMBERS]);
 
@@ -204,7 +211,15 @@
     }
 
     function updateStatus() {
-      document.getElementById('turns').textContent = turns;
+      const turnsElement = document.getElementById('turns');
+      turnsElement.textContent = turns;
+      if (turns > MAX_TURNS) {
+        turnsElement.classList.remove('text-yellow-400');
+        turnsElement.classList.add('text-red-500');
+      } else {
+        turnsElement.classList.remove('text-red-500');
+        turnsElement.classList.add('text-yellow-400');
+      }
       document.getElementById('pairs').textContent = matchedPairs;
     }
 
@@ -244,7 +259,11 @@
       resetTurn();
 
       if (matchedPairs === NUMBERS.length) {
-        setTimeout(handleWin, 500);
+        if (turns <= MAX_TURNS) {
+          setTimeout(handleWin, 500);
+        } else {
+          setTimeout(handleGameOver, 500);
+        }
       }
     }
 
@@ -254,7 +273,13 @@
       setTimeout(() => {
         firstCard.classList.remove('flipped');
         secondCard.classList.remove('flipped');
-        resetTurn();
+        
+        // ターン数がオーバーしているか判定
+        if (turns > MAX_TURNS && matchedPairs < NUMBERS.length) {
+          handleGameOver();
+        } else {
+          resetTurn();
+        }
       }, 800);
     }
 
@@ -270,6 +295,11 @@
       setTimeout(() => {
         window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=3";
       }, 1200);
+    }
+
+    function handleGameOver() {
+      lockBoard = true;
+      document.getElementById('lose-message').classList.remove('hidden');
     }
 
     window.onload = initGame;
