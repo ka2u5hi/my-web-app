@@ -72,8 +72,17 @@
         <div>❤️ HP: <span id="lives" class="text-red-400 font-bold">3</span></div>
       </div>
 
-      <!-- ゲームキャンバス -->
-      <canvas id="game" width="480" height="560" class="mb-3"></canvas>
+      <!-- ゲームキャンバスエリア -->
+      <div class="relative w-full max-w-[360px] mx-auto mb-3">
+        <canvas id="game" width="480" height="560"></canvas>
+        
+        <!-- スタートボタンオーバーレイ -->
+        <div id="startOverlay" class="absolute inset-0 flex items-center justify-center bg-black/60 rounded">
+          <button onclick="startGame()" class="dq-button py-3 px-6 bg-yellow-500 border-yellow-300 text-black text-sm font-bold animate-bounce hover:bg-yellow-400">
+            ▶ スタート
+          </button>
+        </div>
+      </div>
 
       <!-- リセットボタン -->
       <button class="dq-button py-2 px-4 bg-gray-900 border-gray-400 text-xs w-full font-bold" onclick="restartGame()">
@@ -98,6 +107,7 @@
     let score = 0;
     let lives = 3;
     let isGameCleared = false;
+    let isGameStarted = false; // スタート状態フラグを追加
 
     let ball = {
       x: 240,
@@ -128,14 +138,21 @@
       window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
     }
 
+    function startGame() {
+      isGameStarted = true;
+      document.getElementById("startOverlay").classList.add("hidden");
+    }
+
     function restartGame() {
       score = 0;
       lives = 3;
       isGameCleared = false;
+      isGameStarted = false; // リセット時に未スタート状態に戻す
 
       document.getElementById("score").textContent = score;
       document.getElementById("lives").textContent = lives;
       document.getElementById("msgBanner").classList.add("hidden");
+      document.getElementById("startOverlay").classList.remove("hidden"); // スタート画面を表示
 
       ball.x = canvas.width / 2;
       ball.y = canvas.height - 80;
@@ -222,7 +239,7 @@
     }
 
     function update() {
-      if (isGameCleared) return;
+      if (!isGameStarted || isGameCleared) return; // 未スタート時は動かさない
 
       ball.x += ball.dx;
       ball.y += ball.dy;
@@ -284,6 +301,7 @@
     }
 
     function handleMove(clientX) {
+      if (!isGameStarted) return; // 未スタート時は移動不可
       const rect = canvas.getBoundingClientRect();
       const scale = canvas.width / rect.width;
       const x = (clientX - rect.left) * scale;
