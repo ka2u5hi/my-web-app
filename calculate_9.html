@@ -88,7 +88,7 @@
     <!-- メインコンテンツ -->
     <main class="w-full max-w-sm text-center my-auto space-y-3">
         <h1 class="text-xl font-bold text-yellow-400">けいさん の しれん</h1>
-        <p class="text-xs text-gray-300">30びょう いないに もんだいを とけ！<br>10てん いじょうで クリアだ！</p>
+        <p class="text-xs text-gray-300">30びょう いないに もんだいを とけ！<br>7てん いじょうで クリアだ！</p>
 
         <!-- メインウィンドウ -->
         <div class="dq-window p-4">
@@ -321,8 +321,8 @@
 
             const titleElement = resultScreen.querySelector('h2');
 
-            // 10点以上獲得（かつゲームオーバーではない）場合にクリアと判定
-            const isCleared = (score >= 10 && reason !== 'gameover');
+            // 7点以上獲得（かつゲームオーバーではない）場合にクリアと判定
+            const isCleared = (score >= 7 && reason !== 'gameover');
 
             // 終了理由に応じたメッセージ設定
             if (reason === 'gameover') {
@@ -334,7 +334,7 @@
                     resultMessage.textContent = 'みごと けいさん の しれん を のりこえた！ ぼうけんのしょ へ もどります...';
                 } else {
                     if (titleElement) titleElement.textContent = 'タイムアップ！';
-                    resultMessage.textContent = 'クリアには 10てん いじょう ひつようだ！ もういちど ちょうせん しよう！';
+                    resultMessage.textContent = 'クリアには 7てん いじょう ひつようだ！ もういちど ちょうせん しよう！';
                 }
             }
 
