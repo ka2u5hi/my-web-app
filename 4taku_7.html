@@ -48,9 +48,9 @@
     <!-- ヘッダー -->
     <header class="w-full max-w-sm flex justify-between items-center mb-2">
         <button onclick="backToQuest()" class="dq-button px-3 py-1.5 text-xs border-yellow-400 text-yellow-300 flex items-center gap-1 font-bold">
-            ◀ 冒険の書に戻る
+            ◀ ぼうけんのしょ　に　もどる
         </button>
-        <span class="text-xs text-gray-400 font-bold">キーワード 2 の試練</span>
+        <span class="text-xs text-gray-400 font-bold">クイズの試練</span>
     </header>
 
     <!-- メインコンテンツエリア -->
@@ -127,29 +127,29 @@
     <!-- JavaScriptロジック -->
     <script>
         function backToQuest() {
-            window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
+            window.location.href = "http://ka2u5hi.github.io/my-web-app/mainadmini.html";
         }
 
-        // クイズ問題データ（漢字・分かりやすいテキストに改訂）
+        // クイズ問題データ（最新の10問）
         const quizDataPool = [
             {
-                question: "工業高校などで取得が推進されている、資格や検定の取得実績に応じて生徒を表彰する制度はどれ？",
-                options: ["ジュニアマイスター", "ITパスポート", "技能検定1級", "全国工業マスター"],
-                answer: 0
+                question: "2027年（来年）の干支は何でしょう？",
+                options: ["辰（たつ）", "申（さる）", "午（うま）", "未（ひつじ）"],
+                answer: 3
             },
             {
                 question: "日本で一番高い山は「富士山」ですが、2番目に高い山はどれ？",
-                options: ["槍ヶ岳（やりがたけ）", "北岳（きたくだけ）", "奥穂高岳（おくほたかだけ）", "富士山"],
+                options: ["槍ヶ岳", "北岳", "奥穂高岳", "富士山"],
                 answer: 1
             },
             {
-                question: "太陽系の中で最も大きい惑星はどれ？",
+                question: "太陽系の中で最も大きい（質量・直径が最大の）惑星はどれ？",
                 options: ["火星", "土星", "木星", "海王星"],
                 answer: 2
             },
             {
-                question: "ことわざ「猿も木から落ちる」と同じ意味を持つことわざはどれ？",
-                options: ["犬も歩けば棒に当たる", "弘法にも筆の誤り", "石の上にも三年", "花より団子"],
+                question: "どれも似たり寄ったりで、飛び抜けてすぐれた者がいないことを表す慣用句はどれ？",
+                options: ["松の木くらべ", "どんぐりの背比べ", "たけのこの背比べ", "つくしの背比べ"],
                 answer: 1
             },
             {
@@ -158,13 +158,13 @@
                 answer: 2
             },
             {
-                question: "専門的な技術を学び、モノづくりやテクノロジー分野の即戦力を育てる高等学校の種類はどれ？",
-                options: ["商業高校", "農業高校", "工業高校", "水産高校"],
-                answer: 2
+                question: "工業高校などで取得を推進されている、検定や資格の取得実績に応じて生徒を表彰する制度はどれ？",
+                options: ["ジュニアマイスター", "ITパスポート", "技能検定1級", "全国工業マスター"],
+                answer: 0
             },
             {
-                question: "「光合成」を行う際に、植物が吸収する気体はどれ？",
-                options: ["酸素", "窒素", "二酸化炭素", "水素"],
+                question: "専門的な技術や技能を学び、ものづくりやテクノロジー分野の即戦力を育てる高等学校の種類はどれ？",
+                options: ["商業高校", "農業高校", "工業高校", "水産高校"],
                 answer: 2
             },
             {
@@ -299,7 +299,7 @@
                 }
 
                 setTimeout(function() {
-                    window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=2";
+                    window.location.href = "http://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=4";
                 }, 1500);
 
             } else {
