@@ -301,43 +301,53 @@
             {
                 id: 1,
                 name: "キーワード 1",
-                char: "誠",
-                code: ["SPOT_1_1", "SPOT_1_2"], // どちらのQRでもキーワード1の進捗になる
+                char: "あ",
+                code: ["SPOT_1_E", "SPOT_1_H"], // どちらのQRでもキーワード1の進捗になる
                 urls: [
-                    { code: "SPOT_1_1", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
-                    { code: "SPOT_1_2", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
+                    { code: "SPOT_1_E", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" },
+                    { code: "SPOT_1_H", title: "ブロック崩し のしれん", url: "https://ka2u5hi.github.io/my-web-app/braek_8.html" }
                 ]
             },
             {
                 id: 2,
                 name: "キーワード 2",
-                char: "実",
-                code: ["SPOT_2_1", "SPOT_2_2"],
+                char: "い",
+                code: ["SPOT_2_E", "SPOT_2_H"],
                 urls: [
-                    { code: "SPOT_2_1", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
-                    { code: "SPOT_2_2", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
+                    { code: "SPOT_2_E", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" },
+                    { code: "SPOT_2_H", title: "4択クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" }
                 ]
             },
             {
                 id: 3,
                 name: "キーワード 3",
-                char: "信",
-                code: ["SPOT_3_1", "SPOT_3_2"],
+                char: "う",
+                code: ["SPOT_3_E", "SPOT_3_H"],
                 urls: [
-                    { code: "SPOT_3_1", title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
-                    { code: "SPOT_3_2", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                    { code: "SPOT_3_E", title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
+                    { code: "SPOT_3_H", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
                 ]
             },
             {
                 id: 4,
                 name: "キーワード 4",
-                char: "頼",
-                code: ["SPOT_4_1", "SPOT_4_2"],
+                char: "え",
+                code: ["SPOT_4_E", "SPOT_4_H"],
                 urls: [
-                    { code: "SPOT_4_1", title: "4択常識クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" },
-                    { code: "SPOT_4_2", title: "ブロック崩し のしれん", url: "https://ka2u5hi.github.io/my-web-app/braek_8.html" }
+                    { code: "SPOT_4_E", title: "スピード計算 のしれん", url: "https://ka2u5hi.github.io/my-web-app/calculate_9.html" },
+                    { code: "SPOT_4_H", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" }
                 ]
             },
+            {
+                id: 5,
+                name: "キーワード 5",
+                char: "お",
+                code: ["SPOT_5_E", "SPOT_5_H"],
+                urls: [
+                    { code: "SPOT_5_E", title: "カラーボール のしれん", url: "https://ka2u5hi.github.io/my-web-app/sort_10.html" },
+                    { code: "SPOT_5_H", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" }
+                ]
+            }
         ];
 
         let foundSpotIds = [];
@@ -648,14 +658,18 @@
                 console.error("Camera error:", err);
                 if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
                 
-                // Permission Denied やセキュリティ制限によるエラーハンドリング
-                if (err && (err.name === 'NotAllowedError' || String(err).includes('NotAllowedError'))) {
-                    document.getElementById('scanner-status').textContent = "※かめらの きょかが きょひ されました。 ぶらうざの 設定で かめらを きょか してください。";
+                // Permission Denied やセキュリティ制限によるエラーハンドリング強化
+                const errStr = String(err);
+                if (err && (err.name === 'NotAllowedError' || errStr.includes('NotAllowedError') || errStr.includes('Permission denied'))) {
+                    document.getElementById('scanner-status').textContent = "※ かめらの きょかが きょひ されています。 ぶらうざの 設定で かめらを きょか してください。";
                     showCustomModal(
                         "fa-lock",
                         "かめら の きょか が つかわれていません",
-                        "ブラウザの カメラ権限が「ブロック」されているか、通信が保護されていません(HTTPSが必要)。\nアドレスバーの【カギマーク】または【AA】をタップして、カメラアクセスを「許可」に変更したあと再起動してください。",
-                        [{ text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold", action: startScanner }]
+                        "ブラウザの カメラ権限が「ブロック」されています。\n\n【解決方法】\n1. アドレスバー横の [ 🔒 ] または [ AA ] ボタンをタップ\n2.「カメラ」の設定を「許可」に変更\n3. 下の「さいきどう」ボタンをタップ",
+                        [
+                            { text: "ページを さいこうしん", class: "dq-button py-1.5 px-3 text-white bg-gray-800 text-xs", action: () => window.location.reload() },
+                            { text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold text-xs", action: startScanner }
+                        ]
                     );
                 } else {
                     document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
