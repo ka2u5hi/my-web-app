@@ -164,8 +164,8 @@
                 <span id="scanner-badge" class="text-[10px] text-gray-400">ていしちゅう</span>
             </div>
 
-            <!-- スキャン枠 -->
-            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[220px] flex flex-col items-center justify-center overflow-hidden rounded p-2">
+            <!-- スキャン枠 (縦画面での認識率向上のため縦幅を拡大) -->
+            <div id="reader-container" class="w-full relative bg-gray-950 border-2 border-dashed border-gray-500 min-h-[300px] flex flex-col items-center justify-center overflow-hidden rounded p-2">
                 <div id="reader" class="w-full"></div>
             </div>
 
@@ -302,50 +302,50 @@
                 id: 1,
                 name: "キーワード 1",
                 char: "あ",
-                code: ["SPOT_1_E", "SPOT_1_H"], // どちらのQRでもキーワード1の進捗になる
+                code: ["SPOT_1_1", "SPOT_1_2"], // どちらのQRでもキーワード1の進捗になる
                 urls: [
-                    { code: "SPOT_1_E", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" },
-                    { code: "SPOT_1_H", title: "ブロック崩し のしれん", url: "https://ka2u5hi.github.io/my-web-app/braek_8.html" }
+                    { code: "SPOT_1_1", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" },
+                    { code: "SPOT_1_2", title: "10秒タイマー のしれん", url: "https://ka2u5hi.github.io/my-web-app/10timer_3.html" }
                 ]
             },
             {
                 id: 2,
                 name: "キーワード 2",
                 char: "り",
-                code: ["SPOT_2_E", "SPOT_2_H"],
+                code: ["SPOT_2_1", "SPOT_2_2"],
                 urls: [
-                    { code: "SPOT_2_E", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" },
-                    { code: "SPOT_2_H", title: "4択クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" }
+                    { code: "SPOT_2_1", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" },
+                    { code: "SPOT_2_2", title: "一筆書き のしれん", url: "https://ka2u5hi.github.io/my-web-app/onestroke_6.html" }
                 ]
             },
             {
                 id: 3,
                 name: "キーワード 3",
                 char: "が",
-                code: ["SPOT_3_E", "SPOT_3_H"],
+                code: ["SPOT_3_1", "SPOT_3_2"],
                 urls: [
-                    { code: "SPOT_3_E", title: "神経衰弱 のしれん", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
-                    { code: "SPOT_3_H", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
+                    { code: "SPOT_3_1", title: "神経衰弱 のしれ contract", url: "https://ka2u5hi.github.io/my-web-app/memory_4.html" },
+                    { code: "SPOT_3_2", title: "記憶力テスト のしれん", url: "https://ka2u5hi.github.io/my-web-app/kioku_5.html" }
                 ]
             },
             {
                 id: 4,
                 name: "キーワード 4",
                 char: "と",
-                code: ["SPOT_4_E", "SPOT_4_H"],
+                code: ["SPOT_4_1", "SPOT_4_2"],
                 urls: [
-                    { code: "SPOT_4_E", title: "スピード計算 のしれん", url: "https://ka2u5hi.github.io/my-web-app/calculate_9.html" },
-                    { code: "SPOT_4_H", title: "8パズル のしれん", url: "https://ka2u5hi.github.io/my-web-app/8pazuru_1.html" }
+                    { code: "SPOT_4_1", title: "4択クイズ のしれん", url: "https://ka2u5hi.github.io/my-web-app/4taku_7.html" },
+                    { code: "SPOT_4_2", title: "スピード計算 のしれん", url: "https://ka2u5hi.github.io/my-web-app/calculate_9.html" }
                 ]
             },
             {
                 id: 5,
                 name: "キーワード 5",
                 char: "う",
-                code: ["SPOT_5_E", "SPOT_5_H"],
+                code: ["SPOT_5_1", "SPOT_5_2"],
                 urls: [
-                    { code: "SPOT_5_E", title: "カラーボール のしれん", url: "https://ka2u5hi.github.io/my-web-app/sort_10.html" },
-                    { code: "SPOT_5_H", title: "ミニオセロ のしれん", url: "https://ka2u5hi.github.io/my-web-app/miniosero_2.html" }
+                    { code: "SPOT_5_1", title: "ブロック崩し のしれん", url: "https://ka2u5hi.github.io/my-web-app/braek_8.html" },
+                    { code: "SPOT_5_2", title: "カラーボール のしれん", url: "https://ka2u5hi.github.io/my-web-app/sort_10.html" }
                 ]
             }
         ];
@@ -626,22 +626,24 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
-            // iPhone標準カメラ風：枠に合わせなくても画面の広範囲（約80%）で即座に検知できるように拡大
+            // iPhone標準カメラ風：縦画面でも検知しやすく領域を拡大
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
                 const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                // 画面幅の85%まで検知枠を広げて、画角に入った瞬間に反応するように改善
-                const qrboxSize = Math.floor(minEdgeSize * 0.85);
+                const qrboxSize = Math.floor(minEdgeSize * 0.9);
                 return {
-                    width: Math.max(220, qrboxSize),
-                    height: Math.max(220, qrboxSize)
+                    width: Math.max(240, qrboxSize),
+                    height: Math.max(240, qrboxSize)
                 };
             };
 
             const config = {
-                fps: 60, // フレームレートを上げてレスポンスを高速化（iPhoneの標準カメラ並みの反応速度）
+                fps: 60, // 高速60FPSスキャンに引き上げ
                 qrbox: qrboxFunction,
                 videoConstraints: {
-                    facingMode: "environment"
+                    facingMode: "environment",
+                    width: { ideal: 1920 },  // 縦持ち時の読み取り解像度を1080pに指定
+                    height: { ideal: 1080 },
+                    frameRate: { ideal: 60, max: 60 } // 60FPSをリクエスト
                 }
             };
 
