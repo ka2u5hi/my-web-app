@@ -618,7 +618,10 @@
                 html5QrCode = null;
             }
 
-            html5QrCode = new Html5Qrcode("reader");
+            // QRコード形式のみを明示的に指定して解析負荷を軽減
+            html5QrCode = new Html5Qrcode("reader", {
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+            });
             initScannerInstance();
         }
 
@@ -626,27 +629,25 @@
             const retryBtn = document.getElementById('retry-camera-btn');
             const badgeElem = document.getElementById('scanner-badge');
 
-            // iPhone標準カメラ風：縦画面でも検知しやすく領域を拡大
+            // 画面サイズに応じたレスポンシブなスキャンエリア設定
             const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
-                const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-                const qrboxSize = Math.floor(minEdgeSize * 0.9);
+                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                const size = Math.floor(minEdge * 0.8);
                 return {
-                    width: Math.max(240, qrboxSize),
-                    height: Math.max(240, qrboxSize)
+                    width: Math.max(180, size),
+                    height: Math.max(180, size)
                 };
             };
 
             const config = {
-                fps: 60, // 高速60FPSスキャンに引き上げ
+                fps: 25,
                 qrbox: qrboxFunction,
                 videoConstraints: {
-                    facingMode: "environment",
-                    width: { ideal: 1920 },  // 縦持ち時の読み取り解像度を1080pに指定
-                    height: { ideal: 1080 },
-                    frameRate: { ideal: 60, max: 60 } // 60FPSをリクエスト
+                    facingMode: { exact: "environment" }
                 }
             };
 
+            // バックカメラ（environment）のフォールバック付き起動設定
             html5QrCode.start(
                 { facingMode: "environment" },
                 config,
@@ -657,27 +658,37 @@
             ).then(() => {
                 if (badgeElem) badgeElem.textContent = "さつえいちゅう";
             }).catch(err => {
-                console.error("Camera error:", err);
-                if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
-                
-                // Permission Denied やセキュリティ制限によるエラーハンドリング強化
-                const errStr = String(err);
-                if (err && (err.name === 'NotAllowedError' || errStr.includes('NotAllowedError') || errStr.includes('Permission denied'))) {
-                    document.getElementById('scanner-status').textContent = "※ かめらの きょかが きょひ されています。 ぶらうざの 設定で かめらを きょか してください。";
-                    showCustomModal(
-                        "fa-lock",
-                        "かめら の きょか が つかわれていません",
-                        "ブラウザの カメラ権限が「ブロック」されています。\n\n【解決方法】\n1. アドレスバー横の [ 🔒 ] または [ AA ] ボタンをタップ\n2.「カメラ」の設定を「許可」に変更\n3. 下の「さいきどう」ボタンをタップ",
-                        [
-                            { text: "ページを さいこうしん", class: "dq-button py-1.5 px-3 text-white bg-gray-800 text-xs", action: () => window.location.reload() },
-                            { text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold text-xs", action: startScanner }
-                        ]
-                    );
-                } else {
-                    document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
-                }
-                
-                if (retryBtn) retryBtn.classList.remove('hidden');
+                // exact: environment で失敗した場合のフォールバック
+                console.warn("Exact facingMode failed, retrying standard constraints...", err);
+                html5QrCode.start(
+                    { facingMode: "user" },
+                    { fps: 10, qrbox: qrboxFunction },
+                    (decodedText) => { handleSpotDiscovered(decodedText); },
+                    () => {}
+                ).then(() => {
+                    if (badgeElem) badgeElem.textContent = "さつえいちゅう";
+                }).catch(fallbackErr => {
+                    console.error("Camera error:", fallbackErr);
+                    if (badgeElem) badgeElem.textContent = "かめら ていしちゅう";
+                    
+                    const errStr = String(fallbackErr);
+                    if (fallbackErr && (fallbackErr.name === 'NotAllowedError' || errStr.includes('NotAllowedError') || errStr.includes('Permission denied'))) {
+                        document.getElementById('scanner-status').textContent = "※ かめらの きょかが きょひ されています。 ぶらうざの 設定で かめらを きょか してください。";
+                        showCustomModal(
+                            "fa-lock",
+                            "かめら の きょか が つかわれていません",
+                            "ブラウザの カメラ権限が「ブロック」されています。\n\n【解決方法】\n1. アドレスバー横の [ 🔒 ] または [ AA ] ボタンをタップ\n2.「カメラ」の設定を「許可」に変更\n3. 下の「さいきどう」ボタンをタップ",
+                            [
+                                { text: "ページを さいこうしん", class: "dq-button py-1.5 px-3 text-white bg-gray-800 text-xs", action: () => window.location.reload() },
+                                { text: "さいきどう", class: "dq-button py-1.5 px-4 bg-yellow-500 text-black font-bold text-xs", action: startScanner }
+                            ]
+                        );
+                    } else {
+                        document.getElementById('scanner-status').textContent = "※かめらの きどうに しっぱいしました。 かめらへ の アクセスを きょかしてください。";
+                    }
+                    
+                    if (retryBtn) retryBtn.classList.remove('hidden');
+                });
             });
         }
 
