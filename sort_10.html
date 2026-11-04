@@ -112,21 +112,28 @@
 
     <!-- JavaScript ロジック -->
     <script>
-        const STACK_CAPACITY = 4;
-        const MAX_UNDO = 3;
+        // ==========================================
+        // ゲーム設定・定数設定
+        // ==========================================
+        const STACK_CAPACITY = 4; // 筒1本の容量
+        const MAX_UNDO_COUNT = 3; // 1手戻るの最大使用回数
+        
+        // 色の定義（ID、CSS背景色、CSS枠線色）
         const COLORS = [
             { id: 'red', bg: 'bg-red-500', border: 'border-red-300' },
             { id: 'blue', bg: 'bg-blue-500', border: 'border-blue-300' },
             { id: 'green', bg: 'bg-emerald-500', border: 'border-emerald-300' }
         ];
 
-        let stacks = [];
-        let selectedStackIndex = null;
-        let moves = 0;
-        let history = [];
-        let undoRemaining = MAX_UNDO;
+        // 状態変数
+        let stacks = [];             // 盤面データ [[色ID,...], ...]
+        let selectedStackIndex = null; // 選択中のスタックインデックス
+        let moves = 0;               // 手数
+        let history = [];            // 盤面の履歴保存（1手戻る用）
+        let remainingUndo = MAX_UNDO_COUNT; // 残りの1手戻れる回数
         let isCleared = false;
 
+        // DOM要素の参照
         const gameContainer = document.getElementById('game-container');
         const moveCountElement = document.getElementById('move-count');
         const undoBtn = document.getElementById('undo-btn');
@@ -138,79 +145,114 @@
             window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html";
         }
 
-        window.onload = () => {
-            initGame();
-        };
-
-        resetBtn.addEventListener('click', initGame);
-        undoBtn.addEventListener('click', handleUndo);
-
-        function initGame() {
-            moves = 0;
-            history = [];
-            undoRemaining = MAX_UNDO;
-            selectedStackIndex = null;
-            isCleared = false;
-            
-            moveCountElement.textContent = '0';
-            winMessage.classList.add('hidden');
-            updateUndoButtonUI();
-
-            stacks = generateSolvablePuzzle();
-            render();
-        }
-
-        function updateUndoButtonUI() {
-            undoCountElement.textContent = `(${undoRemaining})`;
-
-            if (history.length > 0 && undoRemaining > 0 && !isCleared) {
-                undoBtn.disabled = false;
-            } else {
-                undoBtn.disabled = true;
-            }
-        }
-
-        function handleUndo() {
-            if (history.length === 0 || undoRemaining <= 0 || isCleared) return;
-
-            const previousState = history.pop();
-            stacks = JSON.parse(JSON.stringify(previousState));
-
-            undoRemaining--;
-            moves--;
-            moveCountElement.textContent = moves;
-            selectedStackIndex = null;
-
-            updateUndoButtonUI();
-            render();
-        }
-
+        // ==========================================
+        // パズル生成ロジック（必ず解ける盤面の生成）
+        // ==========================================
         function generateSolvablePuzzle() {
-            let allBalls = [];
-            COLORS.forEach(color => {
-                for (let i = 0; i < STACK_CAPACITY; i++) {
-                    allBalls.push(color.id);
+            let newStacks;
+            let attempts = 0;
+
+            do {
+                newStacks = [
+                    ['red', 'red', 'red', 'red'],
+                    ['blue', 'blue', 'blue', 'blue'],
+                    ['green', 'green', 'green', 'green'],
+                    []
+                ];
+
+                const SHUFFLE_MOVES = 60;
+                let lastFrom = -1;
+                let lastTo = -1;
+
+                for (let i = 0; i < SHUFFLE_MOVES; i++) {
+                    let validMoves = [];
+
+                    for (let from = 0; from < 4; from++) {
+                        for (let to = 0; to < 4; to++) {
+                            if (from === to) continue;
+                            if (from === lastTo && to === lastFrom) continue;
+
+                            if (canMoveInShuffle(newStacks, from, to)) {
+                                validMoves.push({ from, to });
+                            }
+                        }
+                    }
+
+                    if (validMoves.length === 0) break;
+
+                    const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                    const ball = newStacks[randomMove.from].pop();
+                    newStacks[randomMove.to].push(ball);
+
+                    lastFrom = randomMove.from;
+                    lastTo = randomMove.to;
                 }
-            });
 
-            for (let i = allBalls.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [allBalls[i], allBalls[j]] = [allBalls[j], allBalls[i]];
-            }
-
-            let newStacks = [[], [], [], []];
-            for (let i = 0; i < 12; i++) {
-                const stackIndex = Math.floor(i / STACK_CAPACITY);
-                newStacks[stackIndex].push(allBalls[i]);
-            }
-
-            if (checkWinCondition(newStacks)) {
-                return generateSolvablePuzzle();
-            }
+                attempts++;
+            } while (isTooEasyOrSolved(newStacks) && attempts < 100);
 
             return newStacks;
         }
 
+        function canMoveInShuffle(targetStacks, fromIndex, toIndex) {
+            const fromStack = targetStacks[fromIndex];
+            const toStack = targetStacks[toIndex];
+
+            if (fromStack.length === 0) return false;
+            if (toStack.length >= STACK_CAPACITY) return false;
+
+            return true;
+        }
+
+        function isTooEasyOrSolved(targetStacks) {
+            if (checkWinCondition(targetStacks)) return true;
+
+            let mixedCount = 0;
+            for (const stack of targetStacks) {
+                if (stack.length > 1) {
+                    const firstColor = stack[0];
+                    const hasDifferentColor = stack.some(color => color !== firstColor);
+                    if (hasDifferentColor) mixedCount++;
+                }
+            }
+            return mixedCount < 2;
+        }
+
+        function canMoveToStack(targetStacks, fromIndex, toIndex) {
+            const fromStack = targetStacks[fromIndex];
+            const toStack = targetStacks[toIndex];
+
+            if (fromStack.length === 0) return false;
+            if (toStack.length >= STACK_CAPACITY) return false;
+            if (toStack.length === 0) return true;
+
+            const topFromBall = fromStack[fromStack.length - 1];
+            const topToBall = toStack[toStack.length - 1];
+
+            return topFromBall === topToBall;
+        }
+
+        // ==========================================
+        // ゲーム初期化処理
+        // ==========================================
+        function initGame() {
+            stacks = generateSolvablePuzzle();
+            selectedStackIndex = null;
+            moves = 0;
+            history = [];
+            remainingUndo = MAX_UNDO_COUNT;
+            isCleared = false;
+
+            moveCountElement.textContent = moves;
+            winMessage.classList.add('hidden');
+            updateUndoButtonUI();
+
+            render();
+        }
+
+        // ==========================================
+        // 描画処理
+        // ==========================================
         function render() {
             gameContainer.innerHTML = '';
 
@@ -240,6 +282,9 @@
             });
         }
 
+        // ==========================================
+        // スタックタップ時のアクション処理
+        // ==========================================
         function handleStackClick(index) {
             if (isCleared) return;
 
@@ -287,17 +332,31 @@
         }
 
         function canMove(fromIndex, toIndex) {
-            const fromStack = stacks[fromIndex];
-            const toStack = stacks[toIndex];
+            return canMoveToStack(stacks, fromIndex, toIndex);
+        }
 
-            if (fromStack.length === 0) return false;
-            if (toStack.length >= STACK_CAPACITY) return false;
-            if (toStack.length === 0) return true;
+        function undoMove() {
+            if (history.length === 0 || remainingUndo <= 0 || isCleared) return;
 
-            const topFromBall = fromStack[fromStack.length - 1];
-            const topToBall = toStack[toStack.length - 1];
+            stacks = history.pop();
+            remainingUndo--;
+            moves--;
 
-            return topFromBall === topToBall;
+            moveCountElement.textContent = moves;
+            selectedStackIndex = null;
+
+            updateUndoButtonUI();
+            render();
+        }
+
+        function updateUndoButtonUI() {
+            undoCountElement.textContent = `(${remainingUndo})`;
+
+            if (history.length > 0 && remainingUndo > 0 && !isCleared) {
+                undoBtn.disabled = false;
+            } else {
+                undoBtn.disabled = true;
+            }
         }
 
         function checkWinCondition(currentStacks) {
@@ -319,6 +378,14 @@
                 window.location.href = "https://ka2u5hi.github.io/my-web-app/mainadmini.html?clear_spot=5";
             }, 1200);
         }
+
+        // イベントリスナー設定
+        undoBtn.addEventListener('click', undoMove);
+        resetBtn.addEventListener('click', initGame);
+
+        window.onload = function() {
+            initGame();
+        };
     </script>
 </body>
 </html>
