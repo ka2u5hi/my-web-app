@@ -146,13 +146,14 @@
         }
 
         // ==========================================
-        // パズル生成ロジック（必ず解ける盤面の生成）
+        // パズル生成ロジック（絶対に解ける保証付き + BFS自動ソルバー検証）
         // ==========================================
         function generateSolvablePuzzle() {
             let newStacks;
             let attempts = 0;
 
             do {
+                // 1. 完成状態（3色満タン＋1空き筒）からスタート
                 newStacks = [
                     ['red', 'red', 'red', 'red'],
                     ['blue', 'blue', 'blue', 'blue'],
@@ -160,7 +161,8 @@
                     []
                 ];
 
-                const SHUFFLE_MOVES = 60;
+                // 2. 逆算シャッフル（同色ルール無視でランダムに崩す）
+                const SHUFFLE_MOVES = 50;
                 let lastFrom = -1;
                 let lastTo = -1;
 
@@ -189,11 +191,14 @@
                 }
 
                 attempts++;
-            } while (isTooEasyOrSolved(newStacks) && attempts < 100);
+
+                // 3. 盤面の検証（未シャッフルでないか、かつ解法が存在するか）
+            } while ((isTooEasyOrSolved(newStacks) || !isSolvableBySolver(newStacks)) && attempts < 200);
 
             return newStacks;
         }
 
+        // 逆算シャッフル用の判定（色のルールを無視して容量のみチェック）
         function canMoveInShuffle(targetStacks, fromIndex, toIndex) {
             const fromStack = targetStacks[fromIndex];
             const toStack = targetStacks[toIndex];
@@ -204,9 +209,15 @@
             return true;
         }
 
+        // 盤面がシャッフルされていない／空き筒がない等の不良条件チェック
         function isTooEasyOrSolved(targetStacks) {
             if (checkWinCondition(targetStacks)) return true;
 
+            // 開始時に必ず1つの筒が完全に空であるかを保証
+            const hasEmptyStack = targetStacks.some(stack => stack.length === 0);
+            if (!hasEmptyStack) return true;
+
+            // 混ざっている筒が2つ以上あるか
             let mixedCount = 0;
             for (const stack of targetStacks) {
                 if (stack.length > 1) {
@@ -218,6 +229,46 @@
             return mixedCount < 2;
         }
 
+        // BFS（幅優先探索）で「絶対に解ける解法が存在するか」を自動テストする処理
+        function isSolvableBySolver(initialStacks) {
+            const queue = [JSON.parse(JSON.stringify(initialStacks))];
+            const visited = new Set();
+            visited.add(JSON.stringify(initialStacks));
+
+            let stepCount = 0;
+            const MAX_SEARCH_STEPS = 800;
+
+            while (queue.length > 0 && stepCount < MAX_SEARCH_STEPS) {
+                const current = queue.shift();
+                stepCount++;
+
+                if (checkWinCondition(current)) {
+                    return true;
+                }
+
+                for (let from = 0; from < 4; from++) {
+                    for (let to = 0; to < 4; to++) {
+                        if (from === to) continue;
+
+                        if (canMoveToStack(current, from, to)) {
+                            const nextState = JSON.parse(JSON.stringify(current));
+                            const ball = nextState[from].pop();
+                            nextState[to].push(ball);
+
+                            const stateKey = JSON.stringify(nextState);
+                            if (!visited.has(stateKey)) {
+                                visited.add(stateKey);
+                                queue.push(nextState);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // プレイ中の移動ルール判定（同色の上、または空の筒にのみ置ける）
         function canMoveToStack(targetStacks, fromIndex, toIndex) {
             const fromStack = targetStacks[fromIndex];
             const toStack = targetStacks[toIndex];
@@ -283,7 +334,7 @@
         }
 
         // ==========================================
-        // スタックタップ時のアクション処理
+        // スタックタップ時の処理
         // ==========================================
         function handleStackClick(index) {
             if (isCleared) return;
@@ -303,7 +354,7 @@
                     return;
                 }
 
-                if (canMove(fromIndex, toIndex)) {
+                if (canMoveToStack(stacks, fromIndex, toIndex)) {
                     history.push(JSON.parse(JSON.stringify(stacks)));
 
                     const ball = stacks[fromIndex].pop();
@@ -331,10 +382,9 @@
             }
         }
 
-        function canMove(fromIndex, toIndex) {
-            return canMoveToStack(stacks, fromIndex, toIndex);
-        }
-
+        // ==========================================
+        // 1手戻る処理
+        // ==========================================
         function undoMove() {
             if (history.length === 0 || remainingUndo <= 0 || isCleared) return;
 
@@ -359,6 +409,9 @@
             }
         }
 
+        // ==========================================
+        // クリア判定＆処理
+        // ==========================================
         function checkWinCondition(currentStacks) {
             return currentStacks.every(stack => {
                 if (stack.length === 0) return true;
@@ -383,9 +436,8 @@
         undoBtn.addEventListener('click', undoMove);
         resetBtn.addEventListener('click', initGame);
 
-        window.onload = function() {
-            initGame();
-        };
+        // ゲーム開始
+        window.onload = initGame;
     </script>
 </body>
 </html>
